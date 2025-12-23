@@ -57,4 +57,3 @@ class TestTimeline:
 
         assert completed[StageName.ROUTER] == StageStatus.COMPLETED
         assert completed[StageName.RETRIEVE] == StageStatus.COMPLETED
-

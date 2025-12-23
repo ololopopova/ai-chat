@@ -77,18 +77,13 @@ class TestConversation:
     def test_get_title_from_message(self) -> None:
         """Заголовок из первого сообщения пользователя."""
         conv = Conversation(thread_id="abc")
-        conv.messages.append(
-            ChatMessage(role=MessageRole.USER, content="Расскажи про маркетинг")
-        )
+        conv.messages.append(ChatMessage(role=MessageRole.USER, content="Расскажи про маркетинг"))
         assert conv.get_title() == "Расскажи про маркетинг"
 
     def test_get_title_truncated(self) -> None:
         """Обрезка длинного заголовка."""
         conv = Conversation(thread_id="abc")
-        conv.messages.append(
-            ChatMessage(role=MessageRole.USER, content="А" * 100)
-        )
+        conv.messages.append(ChatMessage(role=MessageRole.USER, content="А" * 100))
         title = conv.get_title(max_length=30)
         assert len(title) == 33  # 30 + "..."
         assert title.endswith("...")
-

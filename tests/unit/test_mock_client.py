@@ -66,4 +66,3 @@ class TestMockApiClient:
             events.append(event)
 
         assert events[-1].type == EventType.ERROR
-
