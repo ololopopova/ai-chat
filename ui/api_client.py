@@ -25,7 +25,7 @@ from ui.models.events import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Iterator
 
 logger = get_logger(__name__)
 
@@ -203,6 +203,95 @@ class WebSocketAPIClient:
 
         except Exception as e:
             logger.exception("Error during message processing")
+            yield ErrorEvent(
+                type=EventType.ERROR,
+                message=f"Connection error: {e}",
+                code="CONNECTION_ERROR",
+            )
+
+    def send_message_sync(self, message: str) -> Iterator[StreamEvent]:
+        """
+        Синхронная версия send_message для Streamlit.
+
+        Streamlit не обновляет UI внутри asyncio.run(), поэтому
+        используем синхронный WebSocket клиент.
+
+        Args:
+            message: Текст сообщения пользователя
+
+        Yields:
+            StreamEvent события от backend
+        """
+        from websocket import create_connection, WebSocketTimeoutException
+
+        if not self._current_thread_id:
+            self._current_thread_id = str(uuid.uuid4())
+
+        # Преобразуем ws:// в http:// для websocket-client
+        url = f"{self._ws_url}/ws/chat/{self._current_thread_id}"
+
+        try:
+            logger.info(
+                "Opening sync WebSocket connection",
+                extra={"url": url, "thread_id": self._current_thread_id[:8]},
+            )
+
+            ws = create_connection(
+                url,
+                timeout=self.CONNECT_TIMEOUT,
+            )
+
+            try:
+                # Отправляем сообщение
+                request = {
+                    "type": "message",
+                    "content": message,
+                    "metadata": {},
+                }
+                ws.send(json.dumps(request))
+                logger.info(
+                    "Message sent (sync)",
+                    extra={
+                        "message_preview": message[:50],
+                        "thread_id": self._current_thread_id[:8],
+                    },
+                )
+
+                # Устанавливаем таймаут на получение
+                ws.settimeout(self.RECEIVE_TIMEOUT)
+
+                # Получаем события до complete или error
+                while True:
+                    try:
+                        raw_data = ws.recv()
+                        data = json.loads(raw_data)
+                        event = self._parse_event(data)
+
+                        if event:
+                            yield event
+
+                            # Завершаем при complete или error
+                            if isinstance(event, (CompleteEvent, ErrorEvent)):
+                                logger.info(
+                                    "Message processing complete (sync)",
+                                    extra={"thread_id": self._current_thread_id[:8]},
+                                )
+                                return
+
+                    except WebSocketTimeoutException:
+                        logger.warning("Receive timeout (sync)")
+                        yield ErrorEvent(
+                            type=EventType.ERROR,
+                            message="Response timeout",
+                            code="TIMEOUT",
+                        )
+                        return
+
+            finally:
+                ws.close()
+
+        except Exception as e:
+            logger.exception("Error during sync message processing")
             yield ErrorEvent(
                 type=EventType.ERROR,
                 message=f"Connection error: {e}",

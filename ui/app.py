@@ -12,8 +12,6 @@ PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import asyncio
-
 import streamlit as st
 
 from src.core.config import get_settings
@@ -51,9 +49,11 @@ from ui.session import get_session_manager
 logger = get_logger(__name__)
 
 
-async def process_message(user_input: str) -> None:
+def process_message_streaming(user_input: str) -> None:
     """
-    Обработать сообщение пользователя асинхронно.
+    Обработать сообщение пользователя с синхронным стримингом.
+
+    Использует синхронный WebSocket для реального стриминга в Streamlit.
 
     Args:
         user_input: Текст сообщения пользователя
@@ -67,10 +67,6 @@ async def process_message(user_input: str) -> None:
 
     logger.info(f"Обработка сообщения: {user_input[:50]}...")
 
-    # Добавляем сообщение пользователя
-    user_message = create_user_message(user_input)
-    conversation.messages.append(user_message)
-
     # Сбрасываем стадии для нового запроса
     session._reset_processing_state()
     session.is_processing = True
@@ -78,78 +74,46 @@ async def process_message(user_input: str) -> None:
     # Накапливаем ответ
     accumulated_content = ""
     asset_url: str | None = None
-    current_progress = None
 
-    # Placeholder для стриминга
+    # Placeholder для стриминга ответа
     response_placeholder = st.empty()
-    progress_placeholder = st.empty()
-    timeline_placeholder = st.sidebar.empty()
 
     try:
-        async for event in session.api_client.send_message(user_input):
+        # Используем СИНХРОННЫЙ метод для реального стриминга
+        for event in session.api_client.send_message_sync(user_input):
             match event.type:
                 case EventType.STAGE:
                     assert isinstance(event, StageEvent)
                     session.stages = update_stage(session.stages, event.stage_name)
                     session.active_message = event.message
 
-                    with timeline_placeholder.container():
-                        render_timeline(session.stages, session.active_message)
-
                 case EventType.TOKEN:
                     assert isinstance(event, TokenEvent)
                     accumulated_content += event.content
-
-                    with response_placeholder.container():
-                        st.chat_message("assistant", avatar="🤖").markdown(
-                            accumulated_content + "▌"
-                        )
-
-                case EventType.TOOL_START:
-                    assert isinstance(event, ToolStartEvent)
-                    current_progress = create_progress_state(event.tool_name)
-                    session.progress = current_progress
-                    logger.info(f"Запуск инструмента: {event.tool_name}")
-
-                case EventType.PROGRESS:
-                    assert isinstance(event, ProgressEvent)
-                    if current_progress:
-                        current_progress = update_progress_state(
-                            current_progress,
-                            event.progress,
-                            event.current_step,
-                        )
-                        session.progress = current_progress
-
-                        with progress_placeholder.container():
-                            render_progress_inline(event.progress, event.current_step)
-
-                case EventType.TOOL_END:
-                    assert isinstance(event, ToolEndEvent)
-                    if event.asset_url:
-                        asset_url = event.asset_url
-                    if current_progress:
-                        current_progress = complete_progress(current_progress)
-                        session.progress = current_progress
-                    progress_placeholder.empty()
-                    logger.info(f"Инструмент завершён: {event.tool_name}")
+                    # Обновляем placeholder с новым контентом — это работает синхронно!
+                    response_placeholder.markdown(accumulated_content + "▌")
 
                 case EventType.ERROR:
                     assert isinstance(event, ErrorEvent)
                     logger.error(f"Ошибка от backend: {event.message}")
-                    st.error(f"❌ {event.message}")
+                    response_placeholder.error(f"❌ {event.message}")
                     session.is_processing = False
                     return
 
                 case EventType.COMPLETE:
                     assert isinstance(event, CompleteEvent)
-                    if event.asset_url and not asset_url:
+                    if event.asset_url:
                         asset_url = event.asset_url
+                    # Используем финальный ответ если есть
+                    if event.final_response and not accumulated_content:
+                        accumulated_content = event.final_response
                     session.stages = complete_all_stages(session.stages)
 
-        # Очищаем placeholder
-        response_placeholder.empty()
-        progress_placeholder.empty()
+                case _:
+                    pass  # Игнорируем остальные события
+
+        # Показываем финальный ответ (без курсора)
+        response_placeholder.markdown(accumulated_content)
 
         # Добавляем финальное сообщение ассистента
         if accumulated_content:
@@ -159,7 +123,7 @@ async def process_message(user_input: str) -> None:
 
     except Exception:
         logger.exception("Ошибка при обработке сообщения")
-        st.error("❌ Произошла непредвиденная ошибка. Попробуйте ещё раз.")
+        response_placeholder.error("❌ Произошла непредвиденная ошибка.")
     finally:
         session.is_processing = False
         session.progress = None
@@ -227,15 +191,25 @@ def main() -> None:
         render_chat_history(conversation.messages)
 
     # Поле ввода
-    if not session.is_processing:
-        user_input = render_chat_input()
+    user_input = render_chat_input(disabled=session.is_processing)
 
-        if user_input:
-            asyncio.run(process_message(user_input))
-            st.rerun()
-    else:
+    if user_input and not session.is_processing:
+        # Сразу показываем сообщение пользователя
+        conversation = session.get_current_conversation()
+        if conversation:
+            user_message = create_user_message(user_input)
+            conversation.messages.append(user_message)
+
+        # Показываем сообщение в чате сразу
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(user_input)
+
+        # Показываем ответ с реальным стримингом
         with st.chat_message("assistant", avatar="🤖"):
-            st.markdown("*Обрабатываю запрос...*")
+            # Синхронная функция — стриминг работает!
+            process_message_streaming(user_input)
+
+        st.rerun()
 
 
 if __name__ == "__main__":

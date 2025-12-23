@@ -32,6 +32,7 @@ class StageName(str, Enum):
     CLARIFY = "clarify"
     RETRIEVE = "retrieve"
     GENERATE = "generate"
+    OFF_TOPIC = "off_topic"
     TOOL_SELECT = "tool_select"
     TOOL_EXECUTE = "tool_execute"
 
@@ -42,6 +43,7 @@ STAGE_LABELS: dict[StageName, str] = {
     StageName.CLARIFY: "Уточнение вопроса",
     StageName.RETRIEVE: "Поиск информации",
     StageName.GENERATE: "Формирование ответа",
+    StageName.OFF_TOPIC: "Вопрос вне темы",
     StageName.TOOL_SELECT: "Выбор инструмента",
     StageName.TOOL_EXECUTE: "Выполнение инструмента",
 }

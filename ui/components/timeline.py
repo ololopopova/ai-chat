@@ -11,6 +11,7 @@ STAGE_ORDER: list[StageName] = [
     StageName.CLARIFY,
     StageName.RETRIEVE,
     StageName.GENERATE,
+    StageName.OFF_TOPIC,
     StageName.TOOL_SELECT,
     StageName.TOOL_EXECUTE,
 ]

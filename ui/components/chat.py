@@ -48,15 +48,18 @@ def render_chat_history(messages: list[ChatMessage]) -> None:
         render_message(message)
 
 
-def render_chat_input() -> str | None:
+def render_chat_input(disabled: bool = False) -> str | None:
     """
     Отрисовать поле ввода сообщения.
+
+    Args:
+        disabled: Заблокировать поле ввода
 
     Returns:
         Введённый текст или None, если ничего не введено
     """
     config = ui_config.chat
-    return st.chat_input(config.input_placeholder)
+    return st.chat_input(config.input_placeholder, disabled=disabled)
 
 
 def create_user_message(content: str) -> ChatMessage:

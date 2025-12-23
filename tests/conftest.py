@@ -277,3 +277,62 @@ def sample_chunks_data() -> list[dict[str, Any]]:
             "chunk_index": 2,
         },
     ]
+
+
+# ============================================================
+# LLM / LangGraph Fixtures
+# ============================================================
+
+
+@pytest.fixture
+def mock_llm_provider():
+    """Mock LLM провайдер для тестов без реальных API вызовов."""
+    from tests.mocks.llm_mock import MockLLMProvider
+
+    return MockLLMProvider(
+        responses={
+            "маркетинг": "marketing",
+            "продукт": "product",
+            "поддержка": "support",
+            "погода": "off_topic",
+        }
+    )
+
+
+@pytest.fixture
+def mock_llm_provider_with_responses():
+    """Фабрика для создания mock LLM провайдера с кастомными ответами."""
+    from tests.mocks.llm_mock import MockLLMProvider
+
+    def _create(responses: dict[str, str]) -> MockLLMProvider:
+        return MockLLMProvider(responses=responses)
+
+    return _create
+
+
+@pytest.fixture
+def mock_checkpointer():
+    """Mock checkpointer для тестов без PostgreSQL."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    checkpointer = MagicMock()
+    checkpointer.setup = AsyncMock()
+    checkpointer.aget = AsyncMock(return_value=None)
+    checkpointer.aput = AsyncMock()
+    checkpointer.alist = AsyncMock(return_value=[])
+
+    return checkpointer
+
+
+@pytest.fixture
+def chat_service_no_checkpointer():
+    """ChatService без checkpointer для unit тестов."""
+    from src.services.chat_service import ChatService
+
+    return ChatService(checkpointer=None)
+
+
+@pytest.fixture
+def sample_thread_id() -> str:
+    """Тестовый thread_id."""
+    return str(uuid.uuid4())
