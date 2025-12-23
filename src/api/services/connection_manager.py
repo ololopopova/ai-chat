@@ -77,4 +77,3 @@ class ConnectionManager:
     def get_all_thread_ids(self) -> list[str]:
         """Получить список всех активных thread_id."""
         return list(self._active_connections.keys())
-

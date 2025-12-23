@@ -119,9 +119,7 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
                     continue
 
                 # Обработка сообщения и стриминг событий через DI handler
-                async for event in message_handler.process_message(
-                    message.content, thread_id
-                ):
+                async for event in message_handler.process_message(message.content, thread_id):
                     # Сериализуем Pydantic модели в JSON
                     await websocket.send_json(event.model_dump(mode="json"))
 

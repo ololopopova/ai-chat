@@ -26,18 +26,20 @@ class HealthResponse(BaseModel):
     timestamp: datetime = Field(default_factory=_utc_now)
     dependencies: dict[str, str] = Field(default_factory=dict)
 
-    model_config = {"json_schema_extra": {
-        "example": {
-            "status": "ok",
-            "version": "0.1.0",
-            "timestamp": "2024-12-23T10:30:00Z",
-            "dependencies": {
-                "database": "not_configured",
-                "redis": "not_configured",
-                "llm": "not_configured",
-            },
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "status": "ok",
+                "version": "0.1.0",
+                "timestamp": "2024-12-23T10:30:00Z",
+                "dependencies": {
+                    "database": "not_configured",
+                    "redis": "not_configured",
+                    "llm": "not_configured",
+                },
+            }
         }
-    }}
+    }
 
 
 class ReadinessResponse(BaseModel):
@@ -51,4 +53,3 @@ class LivenessResponse(BaseModel):
     """Ответ liveness probe."""
 
     alive: bool
-

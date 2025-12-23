@@ -18,13 +18,15 @@ class ChatMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=10000)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    model_config = {"json_schema_extra": {
-        "example": {
-            "type": "message",
-            "content": "Текст сообщения пользователя",
-            "metadata": {},
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "type": "message",
+                "content": "Текст сообщения пользователя",
+                "metadata": {},
+            }
         }
-    }}
+    }
 
 
 class ErrorResponse(BaseModel):
@@ -35,14 +37,16 @@ class ErrorResponse(BaseModel):
     code: str
     timestamp: datetime = Field(default_factory=_utc_now)
 
-    model_config = {"json_schema_extra": {
-        "example": {
-            "type": "error",
-            "message": "Описание ошибки",
-            "code": "INVALID_MESSAGE",
-            "timestamp": "2024-12-23T10:30:00Z",
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "type": "error",
+                "message": "Описание ошибки",
+                "code": "INVALID_MESSAGE",
+                "timestamp": "2024-12-23T10:30:00Z",
+            }
         }
-    }}
+    }
 
 
 class PingMessage(BaseModel):
@@ -56,4 +60,3 @@ class PongMessage(BaseModel):
 
     type: Literal["pong"] = "pong"
     timestamp: datetime = Field(default_factory=_utc_now)
-

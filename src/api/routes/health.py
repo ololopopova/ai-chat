@@ -79,4 +79,3 @@ async def liveness_probe() -> LivenessResponse:
     перезапустить под.
     """
     return LivenessResponse(alive=True)
-

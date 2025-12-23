@@ -53,4 +53,3 @@ async def get_domains(
             status_code=500,
             detail=f"Failed to load domains configuration: {e}",
         ) from e
-

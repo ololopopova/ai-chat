@@ -39,9 +39,7 @@ class Settings(BaseSettings):
     api_ws_url: str = "ws://localhost:8000"
 
     # CORS настройки
-    cors_origins: list[str] = Field(
-        default=["http://localhost:8501", "http://127.0.0.1:8501"]
-    )
+    cors_origins: list[str] = Field(default=["http://localhost:8501", "http://127.0.0.1:8501"])
 
     # WebSocket настройки
     ws_heartbeat_interval: int = 30  # секунды
@@ -56,9 +54,7 @@ class Settings(BaseSettings):
     use_mock_api: bool = True
 
     # Пути к файлам конфигурации
-    domains_config_path: Path = Field(
-        default=PROJECT_ROOT / "config" / "domains.yaml"
-    )
+    domains_config_path: Path = Field(default=PROJECT_ROOT / "config" / "domains.yaml")
 
     @property
     def is_development(self) -> bool:

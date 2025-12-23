@@ -58,4 +58,3 @@ def get_domains_config() -> dict[str, Any]:
 def clear_domains_cache() -> None:
     """Очистить кэш конфигурации доменов (для тестов)."""
     load_domains_config.cache_clear()
-

@@ -232,4 +232,3 @@ class TestSchemasSerialization:
         assert len(json_data["domains"]) == 1
         assert json_data["total"] == 1
         assert json_data["domains"][0]["id"] == "test"
-

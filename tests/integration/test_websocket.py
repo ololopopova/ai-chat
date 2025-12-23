@@ -78,9 +78,7 @@ class TestWebSocketConnection:
             response = ws.receive_json()
             assert response["type"] == "pong"
 
-    def test_websocket_connect_with_invalid_thread_id(
-        self, sync_client: TestClient
-    ) -> None:
+    def test_websocket_connect_with_invalid_thread_id(self, sync_client: TestClient) -> None:
         """Подключение с невалидным thread_id создаёт новый UUID."""
         with sync_client.websocket_connect("/ws/chat/invalid-id") as ws:
             ws.send_json({"type": "ping"})
@@ -111,11 +109,13 @@ class TestWebSocketMessageFlow:
         thread_id = str(uuid4())
         with sync_client.websocket_connect(f"/ws/chat/{thread_id}") as ws:
             # Отправляем сообщение
-            ws.send_json({
-                "type": "message",
-                "content": "Hello, world!",
-                "metadata": {},
-            })
+            ws.send_json(
+                {
+                    "type": "message",
+                    "content": "Hello, world!",
+                    "metadata": {},
+                }
+            )
 
             # Ожидаем события
             events = []
@@ -138,11 +138,13 @@ class TestWebSocketMessageFlow:
         """Отправка сообщения возвращает токены ответа."""
         thread_id = str(uuid4())
         with sync_client.websocket_connect(f"/ws/chat/{thread_id}") as ws:
-            ws.send_json({
-                "type": "message",
-                "content": "Test message",
-                "metadata": {},
-            })
+            ws.send_json(
+                {
+                    "type": "message",
+                    "content": "Test message",
+                    "metadata": {},
+                }
+            )
 
             events = []
             while True:
@@ -163,11 +165,13 @@ class TestWebSocketMessageFlow:
         """Обработка сообщения завершается complete событием."""
         thread_id = str(uuid4())
         with sync_client.websocket_connect(f"/ws/chat/{thread_id}") as ws:
-            ws.send_json({
-                "type": "message",
-                "content": "Test",
-                "metadata": {},
-            })
+            ws.send_json(
+                {
+                    "type": "message",
+                    "content": "Test",
+                    "metadata": {},
+                }
+            )
 
             last_event = None
             while True:
@@ -186,11 +190,13 @@ class TestWebSocketMessageFlow:
         test_message = "Unique test message 12345"
 
         with sync_client.websocket_connect(f"/ws/chat/{thread_id}") as ws:
-            ws.send_json({
-                "type": "message",
-                "content": test_message,
-                "metadata": {},
-            })
+            ws.send_json(
+                {
+                    "type": "message",
+                    "content": test_message,
+                    "metadata": {},
+                }
+            )
 
             events = []
             while True:
@@ -226,11 +232,13 @@ class TestWebSocketErrorHandling:
         """Пустой контент сообщения возвращает ошибку."""
         thread_id = str(uuid4())
         with sync_client.websocket_connect(f"/ws/chat/{thread_id}") as ws:
-            ws.send_json({
-                "type": "message",
-                "content": "",
-                "metadata": {},
-            })
+            ws.send_json(
+                {
+                    "type": "message",
+                    "content": "",
+                    "metadata": {},
+                }
+            )
 
             response = ws.receive_json()
             assert response["type"] == "error"

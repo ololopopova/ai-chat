@@ -26,9 +26,7 @@ class MessageHandler(ABC):
     """
 
     @abstractmethod
-    def process_message(
-        self, message: str, thread_id: str
-    ) -> AsyncIterator[StreamEvent]:
+    def process_message(self, message: str, thread_id: str) -> AsyncIterator[StreamEvent]:
         """
         Обработать сообщение и сгенерировать поток событий.
 
@@ -61,9 +59,7 @@ class EchoMessageHandler(MessageHandler):
         "демонстрировать поток событий. Скоро здесь появится настоящий ИИ!",
     ]
 
-    async def process_message(
-        self, message: str, thread_id: str
-    ) -> AsyncIterator[StreamEvent]:
+    async def process_message(self, message: str, thread_id: str) -> AsyncIterator[StreamEvent]:
         """
         Обработать сообщение и сгенерировать поток событий.
 
@@ -130,4 +126,3 @@ class EchoMessageHandler(MessageHandler):
             "Message processed",
             extra={"thread_id": thread_id[:8], "response_length": len(full_response)},
         )
-
