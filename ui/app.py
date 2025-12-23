@@ -28,7 +28,6 @@ from ui.components.progress import (
     render_progress_inline,
     update_progress_state,
 )
-from ui.components.sidebar import render_sidebar
 from ui.components.timeline import (
     complete_all_stages,
     render_timeline,
@@ -38,7 +37,6 @@ from ui.models.events import (
     CompleteEvent,
     ErrorEvent,
     EventType,
-    ProgressEvent,
     StageEvent,
     TokenEvent,
 )
