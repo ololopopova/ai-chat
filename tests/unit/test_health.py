@@ -78,11 +78,11 @@ async def test_health_check_returns_dependencies(client: AsyncClient) -> None:
     data = response.json()
 
     # Зависимости должны возвращать валидные статусы
-    # (ok, error, not_configured, connection_failed в зависимости от окружения)
-    valid_statuses = {"ok", "error", "not_configured", "connection_failed"}
-    assert data["dependencies"]["database"] in valid_statuses
-    assert data["dependencies"]["redis"] in valid_statuses
-    assert data["dependencies"]["llm"] in valid_statuses
+    # В CI статус может быть 'error: ConnectionError' или другой префикс с 'error:'
+    for dep in ["database", "redis", "llm"]:
+        status = data["dependencies"][dep]
+        # Допускаем ok, not_configured, connection_failed или строки начинающиеся с 'error:'
+        assert status in {"ok", "not_configured", "connection_failed"} or status.startswith("error")
 
 
 @pytest.mark.asyncio

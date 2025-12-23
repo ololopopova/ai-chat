@@ -145,22 +145,6 @@ def cleanup_caches() -> Generator[None, None, None]:
 
 
 # ============================================================
-# Event Loop Fixture for Session-Scoped Async Tests
-# ============================================================
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an event loop for session-scoped async fixtures."""
-    import asyncio
-
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
-
-
-# ============================================================
 # Database Fixtures
 # ============================================================
 
@@ -174,12 +158,12 @@ def db_url() -> str:
     )
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
     """
     Создать async engine для тестовой БД.
 
-    Scope: session — один engine на все тесты.
+    Scope: function — новый engine для каждого теста (для изоляции).
     """
     from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -197,12 +181,12 @@ async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
         await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
     """
     Инициализировать тестовую БД (создать таблицы).
 
-    Scope: session — выполняется один раз перед всеми тестами.
+    Scope: function — выполняется для каждого теста.
     """
     from sqlalchemy import text
 
