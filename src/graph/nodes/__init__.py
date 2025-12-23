@@ -11,4 +11,3 @@ __all__ = [
     "off_topic_node",
     "router_node",
 ]
-

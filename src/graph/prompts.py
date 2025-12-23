@@ -14,10 +14,11 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 # Определяет домен запроса пользователя
 # =============================================================================
 
-ROUTER_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """Ты — маршрутизатор запросов. Твоя задача — определить, к какому домену относится вопрос пользователя.
+ROUTER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """Ты — маршрутизатор запросов. Твоя задача — определить, к какому домену относится вопрос пользователя.
 
 Доступные домены:
 {domains_list}
@@ -29,19 +30,21 @@ ROUTER_PROMPT = ChatPromptTemplate.from_messages([
 
 Отвечай ТОЛЬКО одним словом: slug домена, "clarify" или "off_topic".
 НЕ объясняй своё решение, НЕ добавляй ничего лишнего.""",
-    ),
-    ("human", "{input}"),
-])
+        ),
+        ("human", "{input}"),
+    ]
+)
 
 # =============================================================================
 # GENERATE PROMPT
 # Генерация ответа в контексте домена
 # =============================================================================
 
-GENERATE_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """Ты — полезный ассистент. Отвечай на вопросы пользователя дружелюбно и информативно.
+GENERATE_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """Ты — полезный ассистент. Отвечай на вопросы пользователя дружелюбно и информативно.
 
 Домен: {domain}
 
@@ -52,7 +55,8 @@ GENERATE_PROMPT = ChatPromptTemplate.from_messages([
 4. Общайся естественно, как эксперт в данной области
 
 {context}""",
-    ),
-    MessagesPlaceholder(variable_name="history", optional=True),
-    ("human", "{input}"),
-])
+        ),
+        MessagesPlaceholder(variable_name="history", optional=True),
+        ("human", "{input}"),
+    ]
+)

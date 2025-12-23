@@ -44,10 +44,12 @@ class MockMCPClient:
         Returns:
             Результат вызова
         """
-        self._call_history.append({
-            "tool": tool_name,
-            "arguments": arguments,
-        })
+        self._call_history.append(
+            {
+                "tool": tool_name,
+                "arguments": arguments,
+            }
+        )
 
         if tool_name not in self._tools:
             return {"error": f"Tool {tool_name} not found"}
@@ -83,4 +85,3 @@ def create_mock_mcp_client(tools: dict[str, dict[str, Any]] | None = None) -> Mo
         })
     """
     return MockMCPClient(tools=tools)
-

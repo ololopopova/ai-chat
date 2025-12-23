@@ -59,8 +59,7 @@ class MockChatModel:
     def __init__(self, config: LLMConfig) -> None:
         self.config = config
         self._response_template = (
-            "Это mock-ответ. Для полноценной работы "
-            "установите API ключ в переменную окружения."
+            "Это mock-ответ. Для полноценной работы установите API ключ в переменную окружения."
         )
 
     async def ainvoke(

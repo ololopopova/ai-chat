@@ -57,7 +57,7 @@ async def generate_node(state: ChatState) -> dict[str, Any]:
 
     # Получаем последнее сообщение пользователя
     last_message = messages[-1]
-    user_content = last_message.content if hasattr(last_message, 'content') else str(last_message)
+    user_content = last_message.content if hasattr(last_message, "content") else str(last_message)
 
     logger.info(
         "Generating response",
@@ -80,14 +80,16 @@ async def generate_node(state: ChatState) -> dict[str, Any]:
             history.append(msg)
 
     try:
-        response = await chain.ainvoke({
-            "domain": domain or "general",
-            "context": context,
-            "history": history,
-            "input": user_content,
-        })
+        response = await chain.ainvoke(
+            {
+                "domain": domain or "general",
+                "context": context,
+                "history": history,
+                "input": user_content,
+            }
+        )
         # GPT-5.x возвращает content как список блоков, извлекаем текст
-        raw_content = response.content if hasattr(response, 'content') else response
+        raw_content = response.content if hasattr(response, "content") else response
         response_text = extract_text_from_response(raw_content)
 
         logger.info(
@@ -106,4 +108,3 @@ async def generate_node(state: ChatState) -> dict[str, Any]:
             "messages": [AIMessage(content=ERROR_GENERATION_FAILED)],
             "stage": Stage.GENERATE,
         }
-

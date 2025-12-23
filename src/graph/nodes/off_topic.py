@@ -44,7 +44,7 @@ async def off_topic_node(state: ChatState) -> dict[str, Any]:
     # Логируем off-topic запрос для аналитики
     if messages:
         last_message = messages[-1]
-        content = last_message.content if hasattr(last_message, 'content') else str(last_message)
+        content = last_message.content if hasattr(last_message, "content") else str(last_message)
         logger.info(
             "Off-topic request",
             extra={"message_preview": content[:100] if content else "empty"},
@@ -57,4 +57,3 @@ async def off_topic_node(state: ChatState) -> dict[str, Any]:
         "messages": [AIMessage(content=response)],
         "stage": Stage.OFF_TOPIC,
     }
-

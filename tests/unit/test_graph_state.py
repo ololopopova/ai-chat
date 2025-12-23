@@ -95,4 +95,3 @@ class TestChatState:
         assert state["route"] == Route.CLARIFY
         assert state["stage"] == Stage.CLARIFY
         assert len(state["matched_domains"]) == 2
-

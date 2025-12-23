@@ -92,10 +92,12 @@ class TestChatService:
         with patch.object(
             ChatService,
             "graph",
-            new_callable=lambda: property(lambda _self: MagicMock(
-                astream=mock_astream,
-                aget_state=AsyncMock(return_value=MagicMock(values=mock_state))
-            ))
+            new_callable=lambda: property(
+                lambda _self: MagicMock(
+                    astream=mock_astream,
+                    aget_state=AsyncMock(return_value=MagicMock(values=mock_state)),
+                )
+            ),
         ):
             service = ChatService()
 
@@ -145,8 +147,7 @@ class TestChatServiceIntegration:
 
             events = []
             async for event in service.process_message(
-                "Как продвигать продукт?",
-                "test-thread-001"
+                "Как продвигать продукт?", "test-thread-001"
             ):
                 events.append(event)
 
@@ -176,4 +177,3 @@ class TestChatServiceIntegration:
             # Токены должны быть строками
             for token in tokens:
                 assert isinstance(token, str)
-

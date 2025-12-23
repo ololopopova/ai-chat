@@ -63,4 +63,3 @@ async def clarify_node(state: ChatState) -> dict[str, Any]:
         "messages": [AIMessage(content=clarify_message)],
         "stage": Stage.CLARIFY,
     }
-

@@ -126,9 +126,7 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
 
                 # Обработка сообщения через ChatService (если доступен)
                 if chat_service is not None:
-                    async for event in chat_service.process_message(
-                        message.content, thread_id
-                    ):
+                    async for event in chat_service.process_message(message.content, thread_id):
                         # Сериализуем события в JSON
                         await websocket.send_json(event.to_dict())
                 else:
@@ -186,31 +184,34 @@ async def _fallback_echo_response(
         thread_id: ID сессии
     """
     # Stage event
-    await websocket.send_json({
-        "type": "stage",
-        "stage_name": "generate",
-        "status": "active",
-        "message": "Формирую ответ...",
-    })
+    await websocket.send_json(
+        {
+            "type": "stage",
+            "stage_name": "generate",
+            "status": "active",
+            "message": "Формирую ответ...",
+        }
+    )
 
     # Формируем echo ответ
-    response = (
-        "ChatService временно недоступен. "
-        f"Ваше сообщение: «{message}»"
-    )
+    response = f"ChatService временно недоступен. Ваше сообщение: «{message}»"
 
     # Token events (посимвольно)
     for char in response:
-        await websocket.send_json({
-            "type": "token",
-            "content": char,
-        })
+        await websocket.send_json(
+            {
+                "type": "token",
+                "content": char,
+            }
+        )
         await asyncio.sleep(0.01)
 
     # Complete event
-    await websocket.send_json({
-        "type": "complete",
-        "final_response": response,
-        "thread_id": thread_id,
-        "asset_url": None,
-    })
+    await websocket.send_json(
+        {
+            "type": "complete",
+            "final_response": response,
+            "thread_id": thread_id,
+            "asset_url": None,
+        }
+    )

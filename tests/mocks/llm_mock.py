@@ -163,4 +163,3 @@ def create_failing_llm_provider(error: Exception | None = None) -> MockLLMProvid
         MockLLMProvider который падает при вызовах
     """
     return MockLLMProvider(should_fail=True, fail_error=error)
-

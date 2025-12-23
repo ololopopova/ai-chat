@@ -18,9 +18,21 @@ def _get_domains_list() -> str:
     # TODO: Загружать из БД или конфига
     # Пока используем hardcoded список
     domains = [
-        {"slug": "marketing", "name": "Маркетинг и реклама", "description": "Вопросы о маркетинговых стратегиях"},
-        {"slug": "product", "name": "Продуктовая разработка", "description": "Вопросы о продуктовом менеджменте"},
-        {"slug": "support", "name": "Техническая поддержка", "description": "FAQ и решение проблем"},
+        {
+            "slug": "marketing",
+            "name": "Маркетинг и реклама",
+            "description": "Вопросы о маркетинговых стратегиях",
+        },
+        {
+            "slug": "product",
+            "name": "Продуктовая разработка",
+            "description": "Вопросы о продуктовом менеджменте",
+        },
+        {
+            "slug": "support",
+            "name": "Техническая поддержка",
+            "description": "FAQ и решение проблем",
+        },
     ]
 
     lines = []
@@ -39,7 +51,7 @@ def _parse_router_response(response: str) -> tuple[Route, str | None, list[str] 
     response = response.strip().lower()
 
     # Убираем возможные кавычки
-    response = response.strip('"\'')
+    response = response.strip("\"'")
 
     if response == "clarify":
         return Route.CLARIFY, None, None
@@ -75,7 +87,7 @@ async def router_node(state: ChatState) -> dict[str, Any]:
 
     # Получаем последнее сообщение пользователя
     last_message = messages[-1]
-    user_content = last_message.content if hasattr(last_message, 'content') else str(last_message)
+    user_content = last_message.content if hasattr(last_message, "content") else str(last_message)
 
     logger.info(
         "Router processing message",
@@ -88,12 +100,14 @@ async def router_node(state: ChatState) -> dict[str, Any]:
     chain = ROUTER_PROMPT | provider.model
 
     try:
-        response = await chain.ainvoke({
-            "domains_list": domains_list,
-            "input": user_content,
-        })
+        response = await chain.ainvoke(
+            {
+                "domains_list": domains_list,
+                "input": user_content,
+            }
+        )
         # GPT-5.x возвращает content как список блоков, извлекаем текст
-        raw_content = response.content if hasattr(response, 'content') else response
+        raw_content = response.content if hasattr(response, "content") else response
         response_text = extract_text_from_response(raw_content)
 
         route, domain, matched_domains = _parse_router_response(response_text)
@@ -121,4 +135,3 @@ async def router_node(state: ChatState) -> dict[str, Any]:
             "route": Route.OFF_TOPIC,
             "stage": Stage.ROUTER,
         }
-

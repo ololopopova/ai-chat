@@ -33,4 +33,3 @@ def route_after_router(state: ChatState) -> Literal["generate", "clarify", "off_
     else:
         logger.debug("Routing to off_topic")
         return "off_topic"
-

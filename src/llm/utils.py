@@ -45,4 +45,3 @@ def extract_text_from_response(content: Any) -> str:
 
     # Fallback — преобразуем в строку
     return str(content) if content else ""
-

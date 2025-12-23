@@ -286,9 +286,7 @@ class ChatService:
             # Завершаем текущую стадию
             if current_stage:
                 final_stage_value = (
-                    current_stage.value
-                    if isinstance(current_stage, Stage)
-                    else str(current_stage)
+                    current_stage.value if isinstance(current_stage, Stage) else str(current_stage)
                 )
                 yield StageEvent(
                     stage=final_stage_value,

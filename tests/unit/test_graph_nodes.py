@@ -155,4 +155,3 @@ class TestOffTopicNode:
 
         assert "messages" in result
         assert len(result["messages"]) == 1
-

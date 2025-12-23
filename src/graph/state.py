@@ -53,4 +53,3 @@ class ChatState(TypedDict, total=False):
     # Метаданные маршрутизации
     confidence: float | None
     matched_domains: list[str] | None
-

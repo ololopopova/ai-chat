@@ -1,6 +1,5 @@
 """Тесты для conditional edges графа."""
 
-
 from src.graph.edges import route_after_router
 from src.graph.state import ChatState, Route
 
@@ -51,4 +50,3 @@ class TestRouteAfterRouter:
         }
         result = route_after_router(state)
         assert result == "off_topic"
-
