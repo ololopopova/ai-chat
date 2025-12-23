@@ -41,8 +41,6 @@ from ui.models.events import (
     ProgressEvent,
     StageEvent,
     TokenEvent,
-    ToolEndEvent,
-    ToolStartEvent,
 )
 from ui.session import get_session_manager
 
