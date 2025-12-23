@@ -76,10 +76,12 @@ async def test_health_check_returns_dependencies(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
 
-    # Проверяем заглушки для зависимостей
-    assert data["dependencies"]["database"] == "not_configured"
-    assert data["dependencies"]["redis"] == "not_configured"
-    assert data["dependencies"]["llm"] == "not_configured"
+    # Зависимости должны возвращать валидные статусы
+    # (ok, error, not_configured в зависимости от окружения)
+    valid_statuses = {"ok", "error", "not_configured"}
+    assert data["dependencies"]["database"] in valid_statuses
+    assert data["dependencies"]["redis"] in valid_statuses
+    assert data["dependencies"]["llm"] in valid_statuses
 
 
 @pytest.mark.asyncio

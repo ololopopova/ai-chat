@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Корень проекта
@@ -56,6 +56,36 @@ class Settings(BaseSettings):
     # Пути к файлам конфигурации
     domains_config_path: Path = Field(default=PROJECT_ROOT / "config" / "domains.yaml")
 
+    # ==========================================
+    # Database Settings (PostgreSQL + asyncpg)
+    # ==========================================
+    database_url: str = Field(
+        default="postgresql+asyncpg://ai_chat:ai_chat_secret@localhost:5433/ai_chat",
+        description="Async PostgreSQL connection URL",
+    )
+    database_pool_size: int = Field(default=5, ge=1, le=50, description="Connection pool size")
+    database_max_overflow: int = Field(
+        default=10, ge=0, le=100, description="Max overflow connections"
+    )
+    database_pool_timeout: int = Field(
+        default=30, ge=5, le=120, description="Pool connection timeout in seconds"
+    )
+    database_pool_recycle: int = Field(
+        default=1800, ge=300, description="Connection recycle time in seconds"
+    )
+    database_echo: bool = Field(default=False, description="Echo SQL queries to log")
+
+    # ==========================================
+    # Redis Settings
+    # ==========================================
+    redis_url: str = Field(
+        default="redis://localhost:6379/0",
+        description="Redis connection URL",
+    )
+    redis_max_connections: int = Field(default=10, ge=1, le=100)
+    redis_socket_timeout: float = Field(default=5.0, ge=1.0, le=30.0)
+    redis_socket_connect_timeout: float = Field(default=5.0, ge=1.0, le=30.0)
+
     @property
     def is_development(self) -> bool:
         """Проверка, что приложение в режиме разработки."""
@@ -65,6 +95,12 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """Проверка, что приложение в production режиме."""
         return self.app_env == "production"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def database_url_sync(self) -> str:
+        """Синхронный URL для Alembic (заменяем asyncpg на psycopg2)."""
+        return self.database_url.replace("+asyncpg", "")
 
 
 @lru_cache

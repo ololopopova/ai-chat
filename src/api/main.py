@@ -48,18 +48,43 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     logger.info("Services initialized in app.state")
 
-    # Предзагрузка конфигурации доменов
+    # Предзагрузка конфигурации доменов (в thread pool чтобы не блокировать event loop)
     try:
+        import asyncio
+
         from src.api.deps import load_domains_config
 
-        load_domains_config()
+        # Выносим синхронное чтение файла в thread pool
+        await asyncio.to_thread(load_domains_config)
         logger.info("Domains configuration loaded")
     except FileNotFoundError:
         logger.warning("Domains configuration file not found, using empty config")
     except Exception:
         logger.exception("Failed to load domains configuration")
 
+    # Инициализация database engine и проверка подключения
+    db_engine = None
+    try:
+        from src.db.engine import check_database_connection, get_engine
+
+        db_engine = get_engine()
+        is_connected = await check_database_connection(db_engine, timeout_seconds=10.0)
+        if is_connected:
+            logger.info("Database connection established")
+            app.state.db_engine = db_engine
+        else:
+            logger.warning("Database connection failed, running in degraded mode")
+    except Exception:
+        logger.exception("Failed to initialize database")
+
     yield
+
+    # Cleanup database engine
+    if db_engine is not None:
+        from src.db.engine import dispose_engine
+
+        await dispose_engine(db_engine)
+        logger.info("Database engine disposed")
 
     # Shutdown - очистка ресурсов
     logger.info(
