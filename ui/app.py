@@ -22,12 +22,8 @@ from ui.components.chat import (
     render_chat_history,
     render_chat_input,
 )
-from ui.components.progress import (
-    complete_progress,
-    create_progress_state,
-    render_progress_inline,
-    update_progress_state,
-)
+from ui.components.progress import render_progress_inline
+from ui.components.sidebar import render_sidebar
 from ui.components.timeline import (
     complete_all_stages,
     render_timeline,
