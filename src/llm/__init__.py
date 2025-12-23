@@ -23,7 +23,6 @@ from src.llm.provider import (
 from src.llm.utils import extract_text_from_response
 
 __all__ = [
-    "extract_text_from_response",
     "GenerationParams",
     "LLMAuthError",
     "LLMConfig",
@@ -36,6 +35,7 @@ __all__ = [
     "MockChatModel",
     "clear_llm_config_cache",
     "clear_llm_provider_cache",
+    "extract_text_from_response",
     "get_llm_config",
     "get_llm_provider",
 ]

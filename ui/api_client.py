@@ -222,7 +222,7 @@ class WebSocketAPIClient:
         Yields:
             StreamEvent события от backend
         """
-        from websocket import create_connection, WebSocketTimeoutException
+        from websocket import WebSocketTimeoutException, create_connection
 
         if not self._current_thread_id:
             self._current_thread_id = str(uuid.uuid4())
