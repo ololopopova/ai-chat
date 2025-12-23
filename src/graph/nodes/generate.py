@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 
 from src.core.logging import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
 from src.graph.prompts import GENERATE_PROMPT
 from src.graph.state import ChatState, Stage
 from src.graph.templates import ERROR_GENERATION_FAILED, ERROR_NO_MESSAGE

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
-
-from langchain_core.language_models import BaseChatModel
+from typing import TYPE_CHECKING, Any, cast
 
 from src.core.logging import get_logger
+
+if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
 from src.graph.prompts import ROUTER_PROMPT
 from src.graph.state import ChatState, Route, Stage
 from src.llm import get_llm_provider

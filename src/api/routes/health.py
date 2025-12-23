@@ -46,7 +46,7 @@ async def check_redis() -> tuple[bool, str]:
         from src.core.config import get_settings
 
         settings = get_settings()
-        client = redis.from_url(  # type: ignore[no-untyped-call]
+        client = redis.from_url(
             settings.redis_url,
             socket_timeout=settings.redis_socket_timeout,
             socket_connect_timeout=settings.redis_socket_connect_timeout,
