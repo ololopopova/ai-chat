@@ -74,9 +74,7 @@ class DomainRepositoryProtocol(Protocol):
         """Создать новый домен."""
         ...
 
-    async def slug_exists(
-        self, slug: str, exclude_id: uuid.UUID | None = None
-    ) -> bool:
+    async def slug_exists(self, slug: str, exclude_id: uuid.UUID | None = None) -> bool:
         """Проверить существование slug."""
         ...
 
@@ -175,4 +173,3 @@ class JobRepositoryProtocol(Protocol):
     ) -> Any | None:
         """Обновить прогресс задачи."""
         ...
-

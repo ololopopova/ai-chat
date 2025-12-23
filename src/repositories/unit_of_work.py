@@ -148,4 +148,3 @@ async def get_unit_of_work() -> AsyncGenerator[UnitOfWork, None]:
     """
     async with UnitOfWork() as uow:
         yield uow
-
