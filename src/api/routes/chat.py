@@ -12,7 +12,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
 from src.api.schemas.chat import ChatMessageRequest, ErrorResponse, PongMessage
-from src.core.logging import get_logger
+from src.core.logging import get_logger, set_thread_id
 
 if TYPE_CHECKING:
     from src.api.services import ConnectionManager, MessageHandler
@@ -73,6 +73,9 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
             "Invalid thread_id provided, generated new",
             extra={"new_thread_id": thread_id[:8]},
         )
+
+    # Устанавливаем thread_id в контекст для автоматического логирования
+    set_thread_id(thread_id)
 
     await connection_manager.connect(thread_id, websocket)
 

@@ -3,25 +3,19 @@
 import time
 import uuid
 from collections.abc import Awaitable, Callable
-from contextvars import ContextVar
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.core.logging import get_logger
+from src.core.logging import get_logger, get_request_id, set_request_id
 
 logger = get_logger(__name__)
-
-# Context variable для хранения request_id
-request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 # Тип для call_next
 RequestResponseEndpoint = Callable[[Request], Awaitable[Response]]
 
-
-def get_request_id() -> str:
-    """Получить текущий request_id из контекста."""
-    return request_id_var.get()
+# Re-export для обратной совместимости
+__all__ = ["RequestIdMiddleware", "RequestLoggingMiddleware", "TimingMiddleware", "get_request_id"]
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
@@ -40,7 +34,9 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         """
         # Получаем или генерируем request_id
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        request_id_var.set(request_id)
+
+        # Устанавливаем в контекст для логирования
+        set_request_id(request_id)
 
         # Сохраняем в state для доступа в обработчиках
         request.state.request_id = request_id
