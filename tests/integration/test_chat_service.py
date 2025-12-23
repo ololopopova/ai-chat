@@ -117,11 +117,11 @@ class TestChatService:
         # Мокаем граф чтобы он выбрасывал ошибку
         mock_graph = MagicMock()
 
-        async def failing_astream(*_args, **_kwargs):
+        async def failing_astream_events(*_args, **_kwargs):
             raise Exception("Test error")
-            yield
+            yield  # Делаем функцию генератором
 
-        mock_graph.astream = failing_astream
+        mock_graph.astream_events = failing_astream_events
         service._graph = mock_graph
 
         events = []

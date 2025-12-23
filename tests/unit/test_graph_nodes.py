@@ -70,17 +70,16 @@ class TestRouterNode:
             "messages": [HumanMessage(content="Как продвигать продукт?")],
         }
 
-        # Мокаем LLM провайдер
+        # Мокаем ответ LLM
         mock_response = MagicMock()
         mock_response.content = "marketing"
 
-        mock_model = AsyncMock()
-        mock_model.ainvoke = AsyncMock(return_value=mock_response)
+        # Патчим ROUTER_PROMPT чтобы вернуть мок chain при использовании |
+        mock_chain = AsyncMock()
+        mock_chain.ainvoke = AsyncMock(return_value=mock_response)
 
-        mock_provider = MagicMock()
-        mock_provider.model = mock_model
-
-        with patch("src.graph.nodes.router.get_llm_provider", return_value=mock_provider):
+        with patch("src.graph.nodes.router.ROUTER_PROMPT") as mock_prompt:
+            mock_prompt.__or__ = MagicMock(return_value=mock_chain)
             result = await router_node(state)
 
         assert result["route"] == Route.GENERATE
