@@ -1,0 +1,74 @@
+[project]
+name = "ai-chat"
+version = "0.1.0"
+description = "Умный чат-ассистент с RAG и инструментами через MCP"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Olga Popova" }]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "ui", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # Ruff-specific rules
+    "ASYNC",  # flake8-async
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "B904",   # raise without from inside except
+    "RUF001", # ambiguous unicode (cyrillic in strings) - OK for Russian
+    "RUF002", # ambiguous unicode (cyrillic in docstrings) - OK for Russian
+    "RUF003", # ambiguous unicode (cyrillic in comments) - OK for Russian
+]
+
+[tool.ruff.lint.per-file-ignores]
+"ui/app.py" = ["E402"]  # sys.path manipulation requires imports after code
+"tests/conftest.py" = ["E402"]  # sys.path manipulation for test imports
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "ui"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["streamlit.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-v --tb=short"
+

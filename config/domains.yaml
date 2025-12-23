@@ -1,0 +1,29 @@
+# Конфигурация доменов (тематических областей)
+# Каждый домен привязан к Google Doc с базой знаний
+
+domains:
+  - id: marketing
+    name: Маркетинг и реклама
+    description: Вопросы о маркетинговых стратегиях, рекламных кампаниях, брендинге
+    google_doc_url: https://docs.google.com/document/d/example-marketing-doc
+    enabled: true
+
+  - id: product
+    name: Продуктовая разработка
+    description: Вопросы о продуктовом менеджменте, roadmap, фичах
+    google_doc_url: https://docs.google.com/document/d/example-product-doc
+    enabled: true
+
+  - id: support
+    name: Техническая поддержка
+    description: Часто задаваемые вопросы, решение проблем
+    google_doc_url: https://docs.google.com/document/d/example-support-doc
+    enabled: true
+
+# Настройки маршрутизации
+routing:
+  # Если не удалось определить домен - считать off-topic
+  fallback_to_offtopic: true
+  # Если совпало несколько доменов - запросить уточнение
+  ask_clarification_on_multiple: true
+
