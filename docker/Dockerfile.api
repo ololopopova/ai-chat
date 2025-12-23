@@ -1,0 +1,46 @@
+# Dockerfile для API сервера
+FROM python:3.13-slim
+
+# Метаданные
+LABEL maintainer="Olga Popova"
+LABEL description="AI Chat API Server"
+
+# Переменные окружения
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Рабочая директория
+WORKDIR /app
+
+# Системные зависимости
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копируем requirements и устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем исходный код
+COPY src/ ./src/
+COPY ui/ ./ui/
+COPY scripts/ ./scripts/
+COPY config/ ./config/
+COPY alembic/ ./alembic/
+COPY alembic.ini .
+
+# Создаём директорию для логов
+RUN mkdir -p logs
+
+# Порт API
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health/live || exit 1
+
+# Запуск API сервера
+CMD ["python", "scripts/run_api.py"]
+

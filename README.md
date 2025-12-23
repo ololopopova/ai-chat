@@ -7,6 +7,7 @@
 ### Требования
 
 - Python 3.12+
+- Docker & Docker Compose (для PostgreSQL и Redis)
 - pip
 
 ### Установка
@@ -40,6 +41,27 @@ cp .env.example .env
 # Отредактировать .env при необходимости
 ```
 
+5. **Запустить инфраструктуру (PostgreSQL + Redis):**
+```bash
+# Настроить переменные Docker
+cp docker/env.docker.example docker/.env
+
+# Запустить контейнеры
+docker compose -f docker/docker-compose.yml up -d
+
+# Проверить статус
+docker compose -f docker/docker-compose.yml ps
+```
+
+6. **Инициализировать базу данных:**
+```bash
+# Применить миграции
+python scripts/init_db.py
+
+# Заполнить домены
+python scripts/seed_domains.py
+```
+
 ### Запуск приложения
 
 **1. Запустить FastAPI backend:**
@@ -58,46 +80,94 @@ UI будет доступен по адресу: http://localhost:8501
 
 > **Note:** По умолчанию UI работает в mock-режиме. Для подключения к backend отключите "Mock API" в боковой панели или установите `USE_MOCK_API=false` в `.env`.
 
+### 🐳 Запуск через Docker (полный стек)
+
+```bash
+# Запустить всё (PostgreSQL, Redis, API, UI)
+docker compose -f docker/docker-compose.yml --profile app up -d
+
+# Применить миграции
+docker exec ai_chat_api python scripts/init_db.py
+docker exec ai_chat_api python scripts/seed_domains.py
+
+# Проверить логи
+docker compose -f docker/docker-compose.yml logs -f api
+```
+
+Приложение будет доступно:
+- **UI:** http://localhost:8501
+- **API:** http://localhost:8000
+- **API Docs:** http://localhost:8000/docs
+
 ## 📁 Структура проекта
 
 ```
 ai-chat/
+├── alembic/                    # Database migrations
+│   ├── versions/               # Migration scripts
+│   └── env.py                  # Alembic configuration
+│
 ├── config/                     # Конфигурационные файлы
-│   └── domains.yaml           # Конфигурация доменов
+│   └── domains.yaml            # Конфигурация доменов
+│
+├── docker/                     # Docker configuration
+│   ├── docker-compose.yml      # PostgreSQL, Redis, API, UI
+│   ├── Dockerfile.api          # API image
+│   ├── Dockerfile.ui           # UI image
+│   └── postgres/init.sql       # PostgreSQL extensions
 │
 ├── src/                        # Backend
-│   ├── core/                  # Ядро приложения
-│   │   ├── config.py          # Pydantic Settings
-│   │   ├── exceptions.py      # Базовые исключения
-│   │   └── logging.py         # Настройка логирования
+│   ├── core/                   # Ядро приложения
+│   │   ├── config.py           # Pydantic Settings
+│   │   ├── exceptions.py       # Базовые и Repository исключения
+│   │   └── logging.py          # Настройка логирования
 │   │
-│   └── api/                   # FastAPI backend (Phase 2)
-│       ├── main.py            # App factory
-│       ├── deps.py            # Dependency injection
-│       ├── middleware.py      # Request ID, Logging, Timing
-│       ├── routes/            # Endpoints
-│       │   ├── health.py      # /health, /health/ready, /health/live
-│       │   ├── domains.py     # /api/v1/domains
-│       │   └── chat.py        # /ws/chat/{thread_id}
-│       ├── schemas/           # Pydantic schemas
-│       └── services/          # Business logic
-│           ├── connection_manager.py
-│           └── message_handler.py
+│   ├── db/                     # Database Layer (Phase 3)
+│   │   ├── base.py             # Base ORM model + TimestampMixin
+│   │   ├── engine.py           # Async SQLAlchemy engine
+│   │   ├── session.py          # AsyncSession factory
+│   │   └── models/             # ORM models
+│   │       ├── domain.py       # Domain (knowledge areas)
+│   │       ├── chunk.py        # Chunk (RAG fragments)
+│   │       ├── conversation.py # Conversation (chat history)
+│   │       └── job.py          # Job (async tasks)
+│   │
+│   ├── repositories/           # Repository Pattern (Phase 3)
+│   │   ├── base.py             # Generic CRUD + batch operations
+│   │   ├── protocols.py        # Repository interfaces (DIP)
+│   │   ├── unit_of_work.py     # Unit of Work pattern
+│   │   ├── domain_repository.py
+│   │   ├── chunk_repository.py # FTS + Vector search
+│   │   ├── conversation_repository.py
+│   │   └── job_repository.py
+│   │
+│   └── api/                    # FastAPI backend
+│       ├── main.py             # App factory + lifespan
+│       ├── deps.py             # Dependency injection
+│       ├── middleware.py       # Request ID, Logging, Timing
+│       ├── routes/             # Endpoints
+│       │   ├── health.py       # /health (DB + Redis checks)
+│       │   ├── domains.py      # /api/v1/domains
+│       │   └── chat.py         # /ws/chat/{thread_id}
+│       ├── schemas/            # Pydantic schemas
+│       └── services/           # Business logic
 │
 ├── ui/                         # Streamlit UI
-│   ├── app.py                 # Точка входа
-│   ├── session.py             # Менеджер сессии
-│   ├── api_client.py          # WebSocket API клиент
-│   ├── components/            # UI компоненты
-│   ├── models/                # Pydantic модели событий
-│   └── mock/                  # Mock клиент
+│   ├── app.py                  # Точка входа
+│   ├── session.py              # Менеджер сессии
+│   ├── api_client.py           # WebSocket API клиент
+│   ├── components/             # UI компоненты
+│   ├── models/                 # Pydantic модели событий
+│   └── mock/                   # Mock клиент
 │
 ├── scripts/                    # CLI скрипты
-│   └── run_api.py             # Запуск FastAPI сервера
+│   ├── run_api.py              # Запуск FastAPI сервера
+│   ├── init_db.py              # Инициализация БД
+│   └── seed_domains.py         # Заполнение доменов
 │
 └── tests/                      # Тесты
-    ├── unit/                  # Unit тесты
-    └── integration/           # Integration тесты
+    ├── unit/                   # Unit тесты
+    └── integration/            # Integration тесты (DB, API)
 ```
 
 ## 🎯 Функциональность
@@ -118,16 +188,28 @@ ai-chat/
 - ✅ WebSocket endpoint `/ws/chat/{thread_id}`
 - ✅ REST endpoints: `/health`, `/api/v1/domains`
 - ✅ Стриминг событий в реальном времени
-- ✅ Echo-режим для демонстрации (временно, будет заменён на LLM)
+- ✅ Echo-режим для демонстрации
 - ✅ Dependency Injection через `app.state`
 - ✅ Reconnect логика в клиенте
-- ✅ 80 тестов (unit + integration)
+
+### Phase 3: Database Layer + Persistence ✅
+
+- ✅ PostgreSQL 16 + pgvector + pg_trgm
+- ✅ Redis 7 для кэширования и очередей
+- ✅ SQLAlchemy 2.0 async (asyncpg)
+- ✅ Alembic миграции
+- ✅ Repository Pattern с Generic CRUD
+- ✅ Unit of Work для транзакций
+- ✅ Protocol interfaces (SOLID DIP)
+- ✅ FTS + Vector search для RAG
+- ✅ Health checks с реальной проверкой зависимостей
+- ✅ 100+ тестов (unit + integration)
 
 ## 🌐 API Endpoints
 
 | Endpoint | Метод | Описание |
 |----------|-------|----------|
-| `/health` | GET | Health check с версией и зависимостями |
+| `/health` | GET | Health check (DB + Redis + LLM status) |
 | `/health/ready` | GET | Kubernetes readiness probe |
 | `/health/live` | GET | Kubernetes liveness probe |
 | `/api/v1/domains` | GET | Список доступных доменов |
@@ -186,32 +268,53 @@ pytest tests/ -v
 # Только unit тесты
 pytest tests/unit/ -v
 
-# Только integration тесты
+# Только integration тесты (требует PostgreSQL)
 pytest tests/integration/ -v
 
 # С покрытием
 pytest tests/ --cov=src --cov=ui
 ```
 
-**Покрытие:** 80 тестов (unit + integration)
-
-### Запуск API сервера
+### Работа с миграциями
 
 ```bash
-# С настройками по умолчанию
-python scripts/run_api.py
+# Создать новую миграцию
+alembic revision --autogenerate -m "add new table"
 
-# С параметрами
-python scripts/run_api.py --host 127.0.0.1 --port 8080 --no-reload
+# Применить миграции
+alembic upgrade head
 
-# Опции
-python scripts/run_api.py --help
+# Откатить последнюю миграцию
+alembic downgrade -1
+
+# Показать историю
+alembic history
+```
+
+### Управление Docker
+
+```bash
+# Запустить только инфраструктуру (DB + Redis)
+docker compose -f docker/docker-compose.yml up -d
+
+# Запустить полный стек (+ API + UI)
+docker compose -f docker/docker-compose.yml --profile app up -d
+
+# Остановить
+docker compose -f docker/docker-compose.yml down
+
+# Удалить с данными
+docker compose -f docker/docker-compose.yml down -v
+
+# Пересобрать образы
+docker compose -f docker/docker-compose.yml --profile app up -d --build
 ```
 
 ## 📋 Переменные окружения
 
 | Переменная | Описание | По умолчанию |
 |------------|----------|--------------|
+| **App** | | |
 | `APP_ENV` | Окружение (development/staging/production) | development |
 | `APP_DEBUG` | Режим отладки | false |
 | `APP_VERSION` | Версия приложения | 0.1.0 |
@@ -219,6 +322,13 @@ python scripts/run_api.py --help
 | `API_HOST` | Хост сервера | 0.0.0.0 |
 | `API_PORT` | Порт сервера | 8000 |
 | `API_RELOAD` | Hot reload (dev) | true |
+| **Database** | | |
+| `DATABASE_URL` | PostgreSQL connection string | postgresql+asyncpg://... |
+| `DATABASE_POOL_SIZE` | Размер пула соединений | 5 |
+| `DATABASE_MAX_OVERFLOW` | Доп. соединения | 10 |
+| `DATABASE_ECHO` | SQL логирование | false |
+| **Redis** | | |
+| `REDIS_URL` | Redis connection string | redis://localhost:6379/0 |
 | **API URLs** | | |
 | `API_BASE_URL` | URL backend API | http://localhost:8000 |
 | `API_WS_URL` | URL WebSocket | ws://localhost:8000 |
@@ -230,28 +340,65 @@ python scripts/run_api.py --help
 | `WS_CONNECTION_TIMEOUT` | Таймаут соединения (сек) | 300 |
 | **UI** | | |
 | `UI_TITLE` | Заголовок страницы | AI Ассистент |
-| `UI_PAGE_ICON` | Иконка страницы | 🤖 |
 | `USE_MOCK_API` | Использовать mock API | true |
 
 ## 📦 Стек технологий
 
+### Backend
 - **Python** 3.12+
 - **FastAPI** — Backend API + WebSocket
 - **Uvicorn** — ASGI сервер
-- **Streamlit** — UI framework
+- **SQLAlchemy** 2.0 — Async ORM
+- **asyncpg** — PostgreSQL async driver
+- **Alembic** — Database migrations
 - **Pydantic** — валидация данных
+- **redis-py** — Redis async client
+
+### Database
+- **PostgreSQL** 16 — основная БД
+- **pgvector** — векторный поиск
+- **pg_trgm** — fuzzy text search
+- **Redis** 7 — кэш и очереди
+
+### Frontend
+- **Streamlit** — UI framework
 - **websockets** — WebSocket клиент
-- **PyYAML** — загрузка конфигурации
+- **httpx** — HTTP клиент
+
+### DevOps
+- **Docker** + **Docker Compose**
 - **ruff** — линтинг и форматирование
 - **mypy** — проверка типов
 - **pytest** — тестирование
-- **httpx** — HTTP клиент для тестов
+
+## 🏗 Архитектура
+
+```
+┌─────────────┐     ┌─────────────────────────────────────────┐
+│  Streamlit  │────▶│            FastAPI Backend              │
+│     UI      │◀────│  (WebSocket + REST + Dependency Inj.)   │
+└─────────────┘     └───────────────────┬─────────────────────┘
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    │                   │                   │
+              ┌─────▼─────┐      ┌──────▼──────┐     ┌──────▼──────┐
+              │Repository │      │  LangGraph  │     │    MCP      │
+              │  Layer    │      │ (orchestr.) │     │  (tools)    │
+              └─────┬─────┘      └─────────────┘     └─────────────┘
+                    │
+         ┌──────────┼──────────┐
+         │          │          │
+    ┌────▼────┐ ┌───▼───┐ ┌────▼────┐
+    │PostgreSQL│ │ Redis │ │pgvector │
+    │ (data)  │ │(cache)│ │ (RAG)   │
+    └─────────┘ └───────┘ └─────────┘
+```
 
 ## 🗺 Roadmap
 
 - [x] Phase 1: Streamlit UI + Mock
 - [x] Phase 2: FastAPI Backend + WebSocket
-- [ ] Phase 3: Database (PostgreSQL + SQLAlchemy + Alembic)
+- [x] Phase 3: Database Layer + Persistence
 - [ ] Phase 4: LLM Integration (OpenAI)
 - [ ] Phase 5: RAG (Hybrid Retrieval)
 - [ ] Phase 6: LangGraph Orchestration

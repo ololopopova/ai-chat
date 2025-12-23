@@ -1,9 +1,12 @@
 """Pytest fixtures для тестирования AI Chat приложения."""
 
+import os
 import sys
+import uuid
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Any
 
 import pytest
 
@@ -15,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # Type alias для FastAPI приложения
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from starlette.testclient import TestClient
 
 from src.api.deps import clear_domains_cache
@@ -91,6 +95,12 @@ def temp_domains_file(test_domains_yaml: str) -> Path:
 @pytest.fixture
 def test_settings(temp_domains_file: Path) -> Settings:
     """Тестовые настройки приложения."""
+    # Используем тестовую БД если указана, иначе основную
+    test_db_url = os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql+asyncpg://ai_chat:ai_chat_secret@localhost:5433/ai_chat_test",
+    )
+
     return Settings(
         app_env="development",
         app_version="0.1.0-test",
@@ -98,6 +108,8 @@ def test_settings(temp_domains_file: Path) -> Settings:
         domains_config_path=temp_domains_file,
         cors_origins=["http://localhost:8501", "http://test"],
         ws_connection_timeout=10,  # Меньший таймаут для тестов
+        database_url=test_db_url,
+        database_echo=False,
     )
 
 
@@ -129,3 +141,139 @@ def cleanup_caches() -> Generator[None, None, None]:
     yield
     clear_domains_cache()
     clear_settings_cache()
+
+
+# ============================================================
+# Database Fixtures
+# ============================================================
+
+
+@pytest.fixture(scope="session")
+def db_url() -> str:
+    """URL для тестовой базы данных."""
+    return os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql+asyncpg://ai_chat:ai_chat_secret@localhost:5433/ai_chat_test",
+    )
+
+
+@pytest.fixture(scope="session")
+async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
+    """
+    Создать async engine для тестовой БД.
+
+    Scope: session — один engine на все тесты.
+    """
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    engine = create_async_engine(
+        db_url,
+        echo=False,
+        pool_size=2,
+        max_overflow=5,
+        pool_pre_ping=True,
+    )
+
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
+
+
+@pytest.fixture(scope="session")
+async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
+    """
+    Инициализировать тестовую БД (создать таблицы).
+
+    Scope: session — выполняется один раз перед всеми тестами.
+    """
+    from sqlalchemy import text
+
+    from src.db.base import Base
+
+    # Импортируем модели для metadata
+    from src.db.models import Chunk, Conversation, Domain, Job  # noqa: F401
+
+    async with db_engine.begin() as conn:
+        # Создаём расширения
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+
+        # Создаём таблицы
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield
+
+    # Cleanup после всех тестов (опционально)
+    # async with db_engine.begin() as conn:
+    #     await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest.fixture
+async def db_session(
+    db_engine: AsyncEngine,
+    setup_test_db: None,  # noqa: ARG001
+) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Создать async session для теста с автоматическим rollback.
+
+    Каждый тест получает чистую сессию с откатом в конце.
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    session_factory = async_sessionmaker(
+        bind=db_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+        autocommit=False,
+    )
+
+    async with session_factory() as session, session.begin():
+        yield session
+        # Откатываем все изменения после теста
+        await session.rollback()
+
+
+@pytest.fixture
+def sample_domain() -> dict[str, Any]:
+    """Тестовые данные для создания домена."""
+    unique_id = uuid.uuid4().hex[:8]
+    return {
+        "name": f"Test Domain {unique_id}",
+        "slug": f"test-domain-{unique_id}",
+        "description": "Test domain description",
+        "google_doc_url": f"https://docs.google.com/document/d/{unique_id}",
+        "is_active": True,
+    }
+
+
+@pytest.fixture
+def sample_embedding() -> list[float]:
+    """Тестовый embedding вектор (1536 dims для OpenAI)."""
+    import random
+
+    random.seed(42)  # Для воспроизводимости
+    # Генерируем нормализованный вектор
+    vec = [random.random() for _ in range(1536)]
+    norm = sum(x * x for x in vec) ** 0.5
+    return [x / norm for x in vec]
+
+
+@pytest.fixture
+def sample_chunks_data() -> list[dict[str, Any]]:
+    """Тестовые данные для создания чанков."""
+    return [
+        {
+            "content": "Python is a programming language",
+            "chunk_index": 0,
+        },
+        {
+            "content": "JavaScript is used for web development",
+            "chunk_index": 1,
+        },
+        {
+            "content": "Machine learning with Python",
+            "chunk_index": 2,
+        },
+    ]

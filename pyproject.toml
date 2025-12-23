@@ -41,6 +41,9 @@ ignore = [
 "ui/app.py" = ["E402"]  # sys.path manipulation requires imports after code
 "tests/conftest.py" = ["E402"]  # sys.path manipulation for test imports
 "scripts/run_api.py" = ["E402"]  # sys.path manipulation for imports
+"scripts/init_db.py" = ["E402"]  # sys.path manipulation for imports
+"scripts/seed_domains.py" = ["E402"]  # sys.path manipulation for imports
+"alembic/env.py" = ["E402"]  # sys.path manipulation for Alembic
 "src/api/main.py" = ["ARG001"]  # FastAPI lifespan requires app argument
 
 [tool.ruff.lint.isort]

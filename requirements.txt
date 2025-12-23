@@ -9,6 +9,14 @@ fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 websockets>=13.0
 
+# Database
+sqlalchemy[asyncio]>=2.0.35
+asyncpg>=0.30.0
+alembic>=1.14.0
+pgvector>=0.3.5
+
+# Redis
+redis>=5.2.0
+
 # Utils
 pyyaml>=6.0.0
-
