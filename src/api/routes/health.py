@@ -57,7 +57,7 @@ async def check_redis() -> tuple[bool, str]:
                 await client.ping()
                 return (True, "ok")
         finally:
-            await client.aclose()
+            await client.aclose()  # type: ignore[attr-defined]
     except Exception as e:
         logger.warning("Redis health check failed", extra={"error": str(e)})
         return (False, f"error: {type(e).__name__}")
