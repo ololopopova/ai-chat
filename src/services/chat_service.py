@@ -23,7 +23,9 @@ logger = get_logger(__name__)
 class ChatEvent:
     """Базовый класс для событий чата."""
 
-    pass
+    def to_dict(self) -> dict[str, Any]:
+        """Преобразовать в словарь для JSON."""
+        raise NotImplementedError
 
 
 class StageEvent(ChatEvent):
@@ -254,8 +256,8 @@ class ChatService:
 
                 # Завершение узла — для clarify/off_topic отправляем ответ
                 elif event_kind == "on_chain_end" and event_name in ("clarify", "off_topic"):
-                    output = event_data.get("output", {})
-                    messages = output.get("messages", [])
+                    output: dict[str, Any] = event_data.get("output", {})
+                    messages: list[Any] = output.get("messages", [])
                     if messages:
                         last_msg = messages[-1]
                         if hasattr(last_msg, "content"):
@@ -270,10 +272,10 @@ class ChatService:
 
                 # Финальное сообщение (fallback)
                 elif event_kind == "on_chain_end" and event_name == "LangGraph":
-                    output = event_data.get("output", {})
-                    messages = output.get("messages", [])
-                    if messages and not full_response:
-                        last_msg = messages[-1]
+                    output_final: dict[str, Any] = event_data.get("output", {})
+                    messages_final: list[Any] = output_final.get("messages", [])
+                    if messages_final and not full_response:
+                        last_msg = messages_final[-1]
                         if hasattr(last_msg, "content"):
                             from src.llm.utils import extract_text_from_response
 

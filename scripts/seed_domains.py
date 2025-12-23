@@ -47,7 +47,7 @@ def load_domains_yaml(config_path: Path) -> list[dict[str, Any]]:
     with config_path.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    domains = config.get("domains", [])
+    domains: list[dict[str, Any]] = config.get("domains", [])
     logger.info(f"Loaded {len(domains)} domains from {config_path}")
 
     return domains

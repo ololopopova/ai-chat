@@ -55,7 +55,19 @@ class BaseApiClient(Protocol):
 
     def send_message(self, message: str) -> AsyncIterator[StreamEvent]:
         """
-        Отправить сообщение и получить поток событий.
+        Отправить сообщение и получить поток событий (асинхронно).
+
+        Args:
+            message: Текст сообщения пользователя
+
+        Yields:
+            StreamEvent события от backend
+        """
+        ...
+
+    def send_message_sync(self, message: str) -> Iterator[StreamEvent]:
+        """
+        Отправить сообщение и получить поток событий (синхронно).
 
         Args:
             message: Текст сообщения пользователя

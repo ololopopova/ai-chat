@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 
 from src.core.logging import get_logger
@@ -70,7 +71,8 @@ async def generate_node(state: ChatState) -> dict[str, Any]:
     # Формируем chain: prompt | model
     context = _get_domain_context(domain)
     provider = get_llm_provider()
-    chain = GENERATE_PROMPT | provider.model
+    model = cast(BaseChatModel, provider.model)
+    chain = GENERATE_PROMPT | model
 
     # Собираем историю для MessagesPlaceholder
     history_limit = 10

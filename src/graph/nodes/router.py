@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
+
+from langchain_core.language_models import BaseChatModel
 
 from src.core.logging import get_logger
 from src.graph.prompts import ROUTER_PROMPT
@@ -97,7 +99,8 @@ async def router_node(state: ChatState) -> dict[str, Any]:
     # Формируем chain: prompt | model
     domains_list = _get_domains_list()
     provider = get_llm_provider()
-    chain = ROUTER_PROMPT | provider.model
+    model = cast(BaseChatModel, provider.model)
+    chain = ROUTER_PROMPT | model
 
     try:
         response = await chain.ainvoke(
