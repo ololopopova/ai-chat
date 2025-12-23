@@ -1,0 +1,26 @@
+# Конфигурация LLM моделей
+# Секреты (API ключи) хранятся в переменных окружения
+
+models:
+  # Основная модель
+  default: "openai:gpt-5.2"
+  # Резервная модель при ошибках основной
+  fallback: "openai:gpt-5-mini"
+
+# Параметры генерации для GPT-5.x
+# (temperature не поддерживается в GPT-5.x)
+generation:
+  # Уровень усилий на рассуждение: none, low, medium, high, xhigh
+  reasoning_effort: "low"
+  # Детализация ответа: low, medium, high
+  output_verbosity: "low"
+
+# Инфраструктурные параметры
+infrastructure:
+  # Таймаут запроса в секундах
+  timeout: 60
+  # Максимум повторных попыток при ошибках
+  max_retries: 3
+  # Задержки между retry (exponential backoff)
+  retry_delays: [1.0, 2.0, 4.0]
+

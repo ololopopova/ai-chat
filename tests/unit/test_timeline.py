@@ -14,9 +14,12 @@ class TestTimeline:
 
     def test_stage_order_contains_all_stages(self) -> None:
         """STAGE_ORDER содержит все стадии."""
-        assert len(STAGE_ORDER) == 6
+        assert (
+            len(STAGE_ORDER) == 7
+        )  # router, clarify, retrieve, generate, off_topic, tool_select, tool_execute
         assert StageName.ROUTER in STAGE_ORDER
         assert StageName.GENERATE in STAGE_ORDER
+        assert StageName.OFF_TOPIC in STAGE_ORDER
 
     def test_get_initial_stages(self) -> None:
         """Начальное состояние — пустой словарь."""

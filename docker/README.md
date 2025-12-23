@@ -1,140 +1,145 @@
 # Docker Infrastructure
 
-## Обзор
-
-Docker Compose конфигурация для AI Chat.
-
-### Сервисы
-
-| Service   | Image                    | Порт  | Profile | Описание                        |
-|-----------|--------------------------|-------|---------|--------------------------------|
-| postgres  | pgvector/pgvector:pg16   | 5433  | default | PostgreSQL 16 + pgvector       |
-| redis     | redis:7-alpine           | 6379  | default | Redis 7 для очередей и кэша    |
-| api       | ai_chat_api              | 8000  | app     | FastAPI Backend                |
-| ui        | ai_chat_ui               | 8501  | app     | Streamlit Frontend             |
-| adminer   | adminer:latest           | 8080  | debug   | Web UI для БД                  |
-
-## Быстрый старт
-
-### Вариант 1: Только БД (для локальной разработки)
+## Быстрый старт (3 шага)
 
 ```bash
-# 1. Скопируйте файл окружения
+# 1. Настроить окружение
 cp docker/env.docker.example docker/.env
+echo "OPENAI_API_KEY=sk-ваш-ключ" >> docker/.env  # Опционально
 
-# 2. Запустите только PostgreSQL и Redis
-docker compose -f docker/docker-compose.yml up -d
-
-# 3. Примените миграции (локально)
-python scripts/init_db.py
-
-# 4. Заполните домены
-python scripts/seed_domains.py
-
-# 5. Запустите API локально
-python scripts/run_api.py
-```
-
-### Вариант 2: Полный проект в Docker
-
-```bash
-# 1. Скопируйте файл окружения
-cp docker/env.docker.example docker/.env
-
-# 2. Запустите всё (БД + API + UI)
+# 2. Запустить всё
 docker compose -f docker/docker-compose.yml --profile app up -d --build
 
-# 3. Примените миграции
-docker exec ai_chat_api python scripts/init_db.py
-
-# 4. Заполните домены
-docker exec ai_chat_api python scripts/seed_domains.py
-
-# 5. Откройте приложение
-# API: http://localhost:8000
+# 3. Открыть
 # UI:  http://localhost:8501
+# API: http://localhost:8000/docs
 ```
+
+> **Без API ключа** система работает в mock-режиме — можно тестировать UI.
+
+---
+
+## Конфигурация
+
+**Один файл: `docker/.env`** — содержит все настройки для Docker.
+
+### Обязательные переменные
+
+| Переменная | Значение | Описание |
+|------------|----------|----------|
+| `POSTGRES_USER` | ai_chat | Пользователь БД |
+| `POSTGRES_PASSWORD` | ai_chat_secret | Пароль БД |
+| `POSTGRES_DB` | ai_chat | Имя базы |
+
+### API ключи (опционально)
+
+| Переменная | Описание |
+|------------|----------|
+| `OPENAI_API_KEY` | Для реальных ответов GPT-5.2 |
+
+Без ключа — работает mock-режим.
+
+### LLM настройки
+
+Модели и параметры генерации настраиваются в **`config/llm.yaml`** (не в env!):
+
+```yaml
+models:
+  default: "openai:gpt-5.2"
+  fallback: "openai:gpt-5-mini"
+generation:
+  reasoning_effort: "low"
+  output_verbosity: "low"
+```
+
+---
+
+## Сервисы
+
+| Service | Порт | Profile | Описание |
+|---------|------|---------|----------|
+| postgres | 5433 | default | PostgreSQL 16 + pgvector |
+| redis | 6379 | default | Redis 7 |
+| api | 8000 | app | FastAPI Backend |
+| ui | 8501 | app | Streamlit Frontend |
+| adminer | 8080 | debug | Web UI для БД |
+
+---
 
 ## Команды
 
-### Управление контейнерами
+### Запуск
 
 ```bash
-# Запуск в фоне
+# Только БД + Redis (для локальной разработки)
 docker compose -f docker/docker-compose.yml up -d
+
+# Полный стек (БД + API + UI)
+docker compose -f docker/docker-compose.yml --profile app up -d
+
+# С пересборкой образов
+docker compose -f docker/docker-compose.yml --profile app up -d --build
+
+# С Adminer (debug)
+docker compose -f docker/docker-compose.yml --profile debug up -d
+```
+
+### Управление
+
+```bash
+# Статус
+docker compose -f docker/docker-compose.yml ps
+
+# Логи
+docker compose -f docker/docker-compose.yml logs -f api
+
+# Перезапуск (после изменения .env)
+docker compose -f docker/docker-compose.yml restart api
 
 # Остановка
 docker compose -f docker/docker-compose.yml down
 
-# Просмотр логов
-docker compose -f docker/docker-compose.yml logs -f postgres
-
-# Перезапуск
-docker compose -f docker/docker-compose.yml restart postgres
-```
-
-### Запуск с Adminer (debug)
-
-```bash
-docker compose -f docker/docker-compose.yml --profile debug up -d
-```
-
-Adminer доступен на http://localhost:8080
-
-### Подключение к PostgreSQL
-
-```bash
-# Через psql
-docker exec -it ai_chat_postgres psql -U ai_chat -d ai_chat
-
-# Проверить расширения
-docker exec -it ai_chat_postgres psql -U ai_chat -d ai_chat -c "SELECT extname FROM pg_extension;"
-```
-
-### Подключение к Redis
-
-```bash
-docker exec -it ai_chat_redis redis-cli
-
-# Проверить соединение
-docker exec -it ai_chat_redis redis-cli PING
-```
-
-## Тестовая база данных
-
-Для тестов рекомендуется создать отдельную БД:
-
-```bash
-# Создать тестовую БД
-docker exec -it ai_chat_postgres psql -U ai_chat -c "CREATE DATABASE ai_chat_test;"
-
-# Создать расширения в тестовой БД
-docker exec -it ai_chat_postgres psql -U ai_chat -d ai_chat_test -c "CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pg_trgm;"
-```
-
-## Переменные окружения
-
-См. `env.docker.example` для полного списка.
-
-| Переменная        | Default         | Описание                          |
-|-------------------|-----------------|-----------------------------------|
-| POSTGRES_USER     | ai_chat         | Пользователь БД                   |
-| POSTGRES_PASSWORD | ai_chat_secret  | Пароль БД                         |
-| POSTGRES_DB       | ai_chat         | Имя базы данных                   |
-| POSTGRES_PORT     | 5433            | Порт PostgreSQL (host)            |
-| REDIS_PORT        | 6379            | Порт Redis                        |
-| API_PORT          | 8000            | Порт FastAPI                      |
-| UI_PORT           | 8501            | Порт Streamlit                    |
-| ADMINER_PORT      | 8080            | Порт Adminer (debug profile)      |
-
-## Volumes
-
-- `pg_data` - данные PostgreSQL (persistent)
-- `redis_data` - данные Redis (persistent)
-
-Для сброса данных:
-
-```bash
+# Удалить с данными
 docker compose -f docker/docker-compose.yml down -v
 ```
 
+### База данных
+
+```bash
+# Применить миграции
+docker exec ai_chat_api alembic upgrade head
+
+# Заполнить домены
+docker exec ai_chat_api python scripts/seed_domains.py
+
+# Подключиться к PostgreSQL
+docker exec -it ai_chat_postgres psql -U ai_chat -d ai_chat
+
+# Подключиться к Redis
+docker exec -it ai_chat_redis redis-cli
+```
+
+---
+
+## Volumes
+
+| Volume | Описание |
+|--------|----------|
+| `pg_data` | Данные PostgreSQL (persistent) |
+| `redis_data` | Данные Redis (persistent) |
+
+---
+
+## Troubleshooting
+
+### API не отвечает
+```bash
+docker compose -f docker/docker-compose.yml logs api
+```
+
+### Сбросить всё и начать заново
+```bash
+docker compose -f docker/docker-compose.yml down -v
+docker compose -f docker/docker-compose.yml --profile app up -d --build
+docker exec ai_chat_api alembic upgrade head
+```

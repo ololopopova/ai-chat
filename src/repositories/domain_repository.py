@@ -111,6 +111,43 @@ class DomainRepository(BaseRepository[Domain]):
             is_active=is_active,
         )
 
+    async def update_domain(
+        self,
+        id: uuid.UUID,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        google_doc_url: str | None = None,
+        is_active: bool | None = None,
+    ) -> Domain | None:
+        """
+        Обновить домен.
+
+        Args:
+            id: UUID домена.
+            name: Новое название.
+            description: Новое описание.
+            google_doc_url: Новая ссылка на Google Doc.
+            is_active: Активен ли домен.
+
+        Returns:
+            Обновлённый домен или None.
+        """
+        update_data: dict[str, str | bool] = {}
+        if name is not None:
+            update_data["name"] = name
+        if description is not None:
+            update_data["description"] = description
+        if google_doc_url is not None:
+            update_data["google_doc_url"] = google_doc_url
+        if is_active is not None:
+            update_data["is_active"] = is_active
+
+        if not update_data:
+            return await self.get(id)
+
+        return await self.update(id, **update_data)
+
     async def activate(self, id: uuid.UUID) -> Domain | None:
         """
         Активировать домен.

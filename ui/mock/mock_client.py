@@ -21,7 +21,7 @@ from ui.models.events import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Iterator
 
 
 class MockApiClient:
@@ -290,7 +290,7 @@ class MockApiClient:
 
     async def send_message(self, message: str) -> AsyncIterator[StreamEvent]:
         """
-        Отправить сообщение и получить поток событий.
+        Отправить сообщение и получить поток событий (асинхронно).
 
         Args:
             message: Текст сообщения пользователя
@@ -313,3 +313,36 @@ class MockApiClient:
             case _:
                 async for event in self._scenario_rag():
                     yield event
+
+    def send_message_sync(self, message: str) -> Iterator[StreamEvent]:
+        """
+        Отправить сообщение и получить поток событий (синхронно).
+
+        Args:
+            message: Текст сообщения пользователя
+
+        Yields:
+            StreamEvent события от "backend"
+        """
+        # Для mock клиента используем asyncio.run для каждого сценария
+        scenario = self._detect_scenario(message)
+
+        async def collect_events() -> list[StreamEvent]:
+            events: list[StreamEvent] = []
+            match scenario:
+                case "banner":
+                    async for event in self._scenario_banner():
+                        events.append(event)
+                case "error":
+                    async for event in self._scenario_error():
+                        events.append(event)
+                case "offtopic":
+                    async for event in self._scenario_offtopic():
+                        events.append(event)
+                case _:
+                    async for event in self._scenario_rag():
+                        events.append(event)
+            return events
+
+        events = asyncio.run(collect_events())
+        yield from events

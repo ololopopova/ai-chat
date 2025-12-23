@@ -14,7 +14,7 @@ from src.api.middleware import (
 from src.api.routes import api_router
 from src.api.routes.chat import router as chat_router
 from src.api.routes.health import router as health_router
-from src.api.services import ConnectionManager, EchoMessageHandler
+from src.api.services import ConnectionManager
 from src.core.config import Settings, get_settings
 from src.core.logging import get_logger
 
@@ -44,7 +44,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Инициализация сервисов в app.state
     app.state.settings = settings
     app.state.connection_manager = ConnectionManager()
-    app.state.message_handler = EchoMessageHandler()
 
     logger.info("Services initialized in app.state")
 
@@ -77,7 +76,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         logger.exception("Failed to initialize database")
 
+    # Инициализация CheckpointerManager для LangGraph
+    checkpointer_manager = None
+    try:
+        from src.graph.checkpointer import CheckpointerManager
+
+        checkpointer_manager = CheckpointerManager()
+        checkpointer = await checkpointer_manager.start()
+        app.state.checkpointer_manager = checkpointer_manager
+        app.state.checkpointer = checkpointer
+        logger.info("LangGraph checkpointer initialized")
+    except Exception:
+        logger.exception("Failed to initialize LangGraph checkpointer")
+        app.state.checkpointer = None
+
+    # Инициализация ChatService с checkpointer
+    try:
+        from src.services.chat_service import ChatService
+
+        chat_service = ChatService(checkpointer=app.state.checkpointer)
+        app.state.chat_service = chat_service
+        logger.info("ChatService initialized")
+    except Exception:
+        logger.exception("Failed to initialize ChatService")
+
     yield
+
+    # Cleanup checkpointer
+    if checkpointer_manager is not None:
+        await checkpointer_manager.stop()
+        logger.info("LangGraph checkpointer stopped")
 
     # Cleanup database engine
     if db_engine is not None:
@@ -122,7 +150,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # lifespan также вызовет эту инициализацию, но для TestClient это необходимо
     app.state.settings = settings
     app.state.connection_manager = ConnectionManager()
-    app.state.message_handler = EchoMessageHandler()
+    app.state.checkpointer = None  # Будет инициализирован в lifespan
+    app.state.chat_service = None  # Будет инициализирован в lifespan
 
     # Настройка CORS
     app.add_middleware(

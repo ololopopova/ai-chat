@@ -1,0 +1,274 @@
+"""LLM провайдер с поддержкой fallback и retry."""
+
+from __future__ import annotations
+
+import asyncio
+from functools import lru_cache
+from typing import TYPE_CHECKING, Any, cast
+
+from langchain.chat_models import init_chat_model
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from src.core.logging import get_logger
+from src.llm.config import LLMConfig, get_llm_config
+from src.llm.exceptions import (
+    LLMAuthError,
+    LLMContextLengthError,
+    LLMError,
+    LLMRateLimitError,
+    LLMTimeoutError,
+    LLMUnavailableError,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from langchain_core.language_models import BaseChatModel
+
+logger = get_logger(__name__)
+
+
+class MockAIMessage:
+    """Mock сообщение AI."""
+
+    def __init__(self, content: str) -> None:
+        self.content = content
+        self.type = "ai"
+
+
+class MockAIMessageChunk:
+    """Mock чанк сообщения AI для стриминга."""
+
+    def __init__(self, content: str) -> None:
+        self.content = content
+        self.type = "AIMessageChunk"
+
+
+class MockChatModel:
+    """
+    Mock LLM для тестирования без реального API.
+
+    Используется когда нет API ключа или в тестах.
+    """
+
+    def __init__(self, config: LLMConfig) -> None:
+        self.config = config
+        self._response_template = (
+            "Это mock-ответ. Для полноценной работы установите API ключ в переменную окружения."
+        )
+
+    async def ainvoke(
+        self,
+        messages: list[Any],
+        **kwargs: Any,
+    ) -> MockAIMessage:
+        """Имитация асинхронного вызова модели."""
+        # messages и kwargs используются для совместимости с интерфейсом
+        _ = messages, kwargs
+        await asyncio.sleep(0.1)  # Имитация задержки
+        return MockAIMessage(content=self._response_template)
+
+    async def astream(
+        self,
+        messages: list[Any],
+        **kwargs: Any,
+    ) -> AsyncIterator[MockAIMessageChunk]:
+        """Имитация стриминга токенов."""
+        # messages и kwargs используются для совместимости с интерфейсом
+        _ = messages, kwargs
+        words = self._response_template.split()
+        for word in words:
+            await asyncio.sleep(0.05)
+            yield MockAIMessageChunk(content=word + " ")
+
+
+class LLMProvider:
+    """
+    Провайдер LLM с поддержкой:
+    - Lazy initialization модели
+    - Автоматические retry с exponential backoff
+    - Fallback на резервную модель
+    - Mock режим при отсутствии API ключа
+    - Параметры GPT-5.x (reasoning_effort, output_verbosity)
+    """
+
+    def __init__(self, config: LLMConfig | None = None) -> None:
+        """
+        Инициализация провайдера.
+
+        Args:
+            config: Конфигурация LLM. Если None, загружается из config/llm.yaml.
+        """
+        self._config = config or get_llm_config()
+        self._model: BaseChatModel | MockChatModel | None = None
+
+    @property
+    def config(self) -> LLMConfig:
+        """Текущая конфигурация."""
+        return self._config
+
+    @property
+    def model(self) -> BaseChatModel | MockChatModel:
+        """
+        Lazy-initialized модель.
+
+        Returns:
+            BaseChatModel или MockChatModel в зависимости от конфигурации.
+        """
+        if self._model is None:
+            self._model = self._create_model()
+        return self._model
+
+    def _create_model(self) -> BaseChatModel | MockChatModel:
+        """Создать экземпляр модели."""
+        if self._config.is_mock_mode:
+            logger.warning(
+                "No API key found, using mock LLM",
+                extra={"provider": self._config.provider},
+            )
+            return MockChatModel(self._config)
+
+        try:
+            # Получаем параметры в зависимости от версии модели
+            model_params = self._config.get_model_params()
+
+            model: BaseChatModel = cast(
+                "BaseChatModel",
+                init_chat_model(
+                    model=self._config.model,
+                    timeout=self._config.timeout,
+                    max_retries=0,  # Управляем retry на уровне провайдера
+                    **model_params,
+                ),
+            )
+
+            # Добавляем fallback если указан
+            if self._config.fallback_model:
+                fallback = cast(
+                    "BaseChatModel",
+                    init_chat_model(
+                        model=self._config.fallback_model,
+                        timeout=self._config.timeout,
+                        max_retries=0,
+                        **model_params,
+                    ),
+                )
+                # with_fallbacks возвращает RunnableWithFallbacks, совместим с BaseChatModel
+                model_with_fallback = cast("BaseChatModel", model.with_fallbacks([fallback]))
+                logger.info(
+                    "LLM initialized with fallback",
+                    extra={
+                        "primary": self._config.model,
+                        "fallback": self._config.fallback_model,
+                        "params": model_params,
+                    },
+                )
+                return model_with_fallback
+
+            logger.info(
+                "LLM initialized",
+                extra={
+                    "model": self._config.model,
+                    "params": model_params,
+                },
+            )
+
+            return model
+
+        except Exception as e:
+            logger.error(
+                "Failed to initialize LLM, falling back to mock",
+                extra={"error": str(e), "model": self._config.model},
+            )
+            return MockChatModel(self._config)
+
+    async def ainvoke_with_retry(
+        self,
+        messages: list[Any],
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Вызов модели с автоматическим retry.
+
+        Args:
+            messages: Список сообщений
+            **kwargs: Дополнительные параметры
+
+        Returns:
+            Ответ модели
+
+        Raises:
+            LLMError: При исчерпании попыток
+        """
+        retry_delays = self._config.retry_delays
+        min_delay = retry_delays[0] if retry_delays else 1.0
+        max_delay = retry_delays[-1] if retry_delays else 4.0
+
+        retrying = AsyncRetrying(
+            stop=stop_after_attempt(self._config.max_retries),
+            wait=wait_exponential(multiplier=1, min=min_delay, max=max_delay),
+            retry=retry_if_exception_type((TimeoutError, ConnectionError)),
+            reraise=True,
+        )
+
+        try:
+            async for attempt in retrying:
+                with attempt:
+                    try:
+                        return await self.model.ainvoke(messages, **kwargs)
+                    except TimeoutError as e:
+                        logger.warning(
+                            "LLM timeout, retrying",
+                            extra={"attempt": attempt.retry_state.attempt_number},
+                        )
+                        raise LLMTimeoutError() from e
+                    except Exception as e:
+                        error = self._classify_error(e)
+                        if isinstance(error, (LLMAuthError, LLMContextLengthError)):
+                            # Не ретраим ошибки аутентификации и контекста
+                            raise error from e
+                        raise
+
+        except LLMError:
+            raise
+        except Exception as e:
+            raise LLMUnavailableError(str(e)) from e
+
+        # Этот код не должен выполняться, но для type checker
+        raise LLMUnavailableError("Unexpected error")
+
+    def _classify_error(self, error: Exception) -> LLMError:
+        """Классифицировать ошибку LLM."""
+        error_str = str(error).lower()
+
+        if "authentication" in error_str or "api key" in error_str:
+            return LLMAuthError()
+        if "rate limit" in error_str or "429" in error_str:
+            return LLMRateLimitError()
+        if "timeout" in error_str:
+            return LLMTimeoutError()
+        if "context length" in error_str or "too long" in error_str:
+            return LLMContextLengthError()
+
+        return LLMUnavailableError(str(error))
+
+
+@lru_cache
+def get_llm_provider() -> LLMProvider:
+    """
+    Получить singleton экземпляр LLM провайдера.
+
+    Returns:
+        LLMProvider instance
+    """
+    return LLMProvider()
+
+
+def clear_llm_provider_cache() -> None:
+    """Очистить кэш провайдера (для тестов)."""
+    get_llm_provider.cache_clear()

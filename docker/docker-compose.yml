@@ -11,8 +11,10 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: ai_chat_api
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      APP_ENV: ${APP_ENV:-development}
+      # Переопределяем для Docker-сети
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ai_chat}:${POSTGRES_PASSWORD:-ai_chat_secret}@postgres:5432/${POSTGRES_DB:-ai_chat}
       REDIS_URL: redis://redis:6379/0
       API_HOST: 0.0.0.0
@@ -40,7 +42,10 @@ services:
       dockerfile: docker/Dockerfile.ui
     container_name: ai_chat_ui
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
+      # Переопределяем для Docker-сети
       API_BASE_URL: http://api:8000
       API_WS_URL: ws://api:8000
       USE_MOCK_API: "false"

@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 import pytest
+import pytest_asyncio
 
 # Добавляем корень проекта в PYTHONPATH
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -157,12 +158,13 @@ def db_url() -> str:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture
 async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
     """
     Создать async engine для тестовой БД.
 
-    Scope: session — один engine на все тесты.
+    Scope: function — новый engine для каждого теста (для изоляции).
+    Пропускает тест если БД недоступна (для CI без БД).
     """
     from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -174,18 +176,28 @@ async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
         pool_pre_ping=True,
     )
 
+    # Проверяем доступность БД
+    try:
+        from sqlalchemy import text
+
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        await engine.dispose()
+        pytest.skip("Database not available")
+
     try:
         yield engine
     finally:
         await engine.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture
 async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
     """
     Инициализировать тестовую БД (создать таблицы).
 
-    Scope: session — выполняется один раз перед всеми тестами.
+    Scope: function — выполняется для каждого теста.
     """
     from sqlalchemy import text
 
@@ -204,9 +216,9 @@ async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
 
     yield
 
-    # Cleanup после всех тестов (опционально)
-    # async with db_engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.drop_all)
+    # Cleanup после теста
+    async with db_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture
@@ -277,3 +289,62 @@ def sample_chunks_data() -> list[dict[str, Any]]:
             "chunk_index": 2,
         },
     ]
+
+
+# ============================================================
+# LLM / LangGraph Fixtures
+# ============================================================
+
+
+@pytest.fixture
+def mock_llm_provider():
+    """Mock LLM провайдер для тестов без реальных API вызовов."""
+    from tests.mocks.llm_mock import MockLLMProvider
+
+    return MockLLMProvider(
+        responses={
+            "маркетинг": "marketing",
+            "продукт": "product",
+            "поддержка": "support",
+            "погода": "off_topic",
+        }
+    )
+
+
+@pytest.fixture
+def mock_llm_provider_with_responses():
+    """Фабрика для создания mock LLM провайдера с кастомными ответами."""
+    from tests.mocks.llm_mock import MockLLMProvider
+
+    def _create(responses: dict[str, str]) -> MockLLMProvider:
+        return MockLLMProvider(responses=responses)
+
+    return _create
+
+
+@pytest.fixture
+def mock_checkpointer():
+    """Mock checkpointer для тестов без PostgreSQL."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    checkpointer = MagicMock()
+    checkpointer.setup = AsyncMock()
+    checkpointer.aget = AsyncMock(return_value=None)
+    checkpointer.aput = AsyncMock()
+    checkpointer.alist = AsyncMock(return_value=[])
+
+    return checkpointer
+
+
+@pytest.fixture
+def chat_service_no_checkpointer():
+    """ChatService без checkpointer для unit тестов."""
+    from src.services.chat_service import ChatService
+
+    return ChatService(checkpointer=None)
+
+
+@pytest.fixture
+def sample_thread_id() -> str:
+    """Тестовый thread_id."""
+    return str(uuid.uuid4())

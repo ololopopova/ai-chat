@@ -15,14 +15,17 @@ from src.api.schemas.chat import ChatMessageRequest, ErrorResponse, PongMessage
 from src.core.logging import get_logger, set_thread_id
 
 if TYPE_CHECKING:
-    from src.api.services import ConnectionManager, MessageHandler
+    from src.api.services import ConnectionManager
     from src.core.config import Settings
+    from src.services.chat_service import ChatService
 
 router = APIRouter()
 logger = get_logger(__name__)
 
 
-def _get_services(websocket: WebSocket) -> tuple[Settings, ConnectionManager, MessageHandler]:
+def _get_services(
+    websocket: WebSocket,
+) -> tuple[Settings, ConnectionManager, ChatService | None]:
     """
     Получить сервисы из app.state.
 
@@ -30,13 +33,13 @@ def _get_services(websocket: WebSocket) -> tuple[Settings, ConnectionManager, Me
         websocket: WebSocket соединение (для доступа к app)
 
     Returns:
-        Tuple (settings, connection_manager, message_handler)
+        Tuple (settings, connection_manager, chat_service)
     """
     app = websocket.app
     return (
         app.state.settings,
         app.state.connection_manager,
-        app.state.message_handler,
+        getattr(app.state, "chat_service", None),
     )
 
 
@@ -55,14 +58,14 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
             {"type": "ping"}
 
         Server -> Client:
-            {"type": "stage", "stage_name": "router", "message": "..."}
+            {"type": "stage", "stage_name": "router", "message": "...", "status": "active"}
             {"type": "token", "content": "..."}
-            {"type": "complete", "final_response": "...", "asset_url": null}
+            {"type": "complete", "final_response": "...", "thread_id": "...", "asset_url": null}
             {"type": "error", "message": "...", "code": "...", "timestamp": "..."}
             {"type": "pong", "timestamp": "..."}
     """
     # Получаем сервисы через DI (из app.state)
-    settings, connection_manager, message_handler = _get_services(websocket)
+    settings, connection_manager, chat_service = _get_services(websocket)
 
     # Валидация thread_id (должен быть валидным UUID или создаём новый)
     try:
@@ -121,10 +124,18 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
                     )
                     continue
 
-                # Обработка сообщения и стриминг событий через DI handler
-                async for event in message_handler.process_message(message.content, thread_id):
-                    # Сериализуем Pydantic модели в JSON
-                    await websocket.send_json(event.model_dump(mode="json"))
+                # Обработка сообщения через ChatService (если доступен)
+                if chat_service is not None:
+                    async for event in chat_service.process_message(message.content, thread_id):
+                        # Сериализуем события в JSON
+                        await websocket.send_json(event.to_dict())
+                else:
+                    # Fallback на echo режим если ChatService не инициализирован
+                    logger.warning(
+                        "ChatService not available, using fallback",
+                        extra={"thread_id": thread_id[:8]},
+                    )
+                    await _fallback_echo_response(websocket, message.content, thread_id)
 
             except TimeoutError:
                 # Таймаут соединения
@@ -157,3 +168,50 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
 
     finally:
         connection_manager.disconnect(thread_id)
+
+
+async def _fallback_echo_response(
+    websocket: WebSocket,
+    message: str,
+    thread_id: str,
+) -> None:
+    """
+    Fallback echo ответ когда ChatService недоступен.
+
+    Args:
+        websocket: WebSocket соединение
+        message: Сообщение пользователя
+        thread_id: ID сессии
+    """
+    # Stage event
+    await websocket.send_json(
+        {
+            "type": "stage",
+            "stage_name": "generate",
+            "status": "active",
+            "message": "Формирую ответ...",
+        }
+    )
+
+    # Формируем echo ответ
+    response = f"ChatService временно недоступен. Ваше сообщение: «{message}»"
+
+    # Token events (посимвольно)
+    for char in response:
+        await websocket.send_json(
+            {
+                "type": "token",
+                "content": char,
+            }
+        )
+        await asyncio.sleep(0.01)
+
+    # Complete event
+    await websocket.send_json(
+        {
+            "type": "complete",
+            "final_response": response,
+            "thread_id": thread_id,
+            "asset_url": None,
+        }
+    )

@@ -6,98 +6,63 @@
 
 ### Требования
 
-- Python 3.12+
-- Docker & Docker Compose (для PostgreSQL и Redis)
-- pip
+- Docker & Docker Compose
 
-### Установка
+### Запуск (3 команды)
 
-1. **Клонировать репозиторий:**
 ```bash
-git clone <repository-url>
-cd ai-chat
-```
-
-2. **Создать виртуальное окружение:**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# или
-venv\Scripts\activate  # Windows
-```
-
-3. **Установить зависимости:**
-```bash
-# Для разработки (включает ruff, mypy, pytest)
-pip install -r requirements-dev.txt
-
-# Только для запуска
-pip install -r requirements.txt
-```
-
-4. **Настроить переменные окружения:**
-```bash
-cp .env.example .env
-# Отредактировать .env при необходимости
-```
-
-5. **Запустить инфраструктуру (PostgreSQL + Redis):**
-```bash
-# Настроить переменные Docker
+# 1. Настроить окружение
 cp docker/env.docker.example docker/.env
 
-# Запустить контейнеры
+# 2. (Опционально) Добавить API ключ для реальных ответов GPT
+echo "OPENAI_API_KEY=sk-ваш-ключ" >> docker/.env
+
+# 3. Запустить всё
+docker compose -f docker/docker-compose.yml --profile app up -d --build
+```
+
+**Готово!**
+- **UI:** http://localhost:8501
+- **API Docs:** http://localhost:8000/docs
+
+> **Без API ключа** система работает в mock-режиме — можно тестировать интерфейс.
+
+### Применить миграции (первый запуск)
+
+```bash
+docker exec ai_chat_api alembic upgrade head
+docker exec ai_chat_api python scripts/seed_domains.py
+```
+
+---
+
+<details>
+<summary>🔧 Локальная разработка (без Docker для API)</summary>
+
+Если хотите разрабатывать API локально:
+
+```bash
+# 1. Создать venv
+python -m venv venv
+source venv/bin/activate
+
+# 2. Установить зависимости
+pip install -r requirements-dev.txt
+
+# 3. Запустить только БД
 docker compose -f docker/docker-compose.yml up -d
 
-# Проверить статус
-docker compose -f docker/docker-compose.yml ps
-```
+# 4. Миграции
+alembic upgrade head
 
-6. **Инициализировать базу данных:**
-```bash
-# Применить миграции
-python scripts/init_db.py
-
-# Заполнить домены
-python scripts/seed_domains.py
-```
-
-### Запуск приложения
-
-**1. Запустить FastAPI backend:**
-```bash
+# 5. Запустить API
 python scripts/run_api.py
-```
-Backend будет доступен по адресу: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 
-**2. В отдельном терминале запустить Streamlit UI:**
-```bash
+# 6. Запустить UI
 streamlit run ui/app.py
 ```
-UI будет доступен по адресу: http://localhost:8501
 
-> **Note:** По умолчанию UI работает в mock-режиме. Для подключения к backend отключите "Mock API" в боковой панели или установите `USE_MOCK_API=false` в `.env`.
-
-### 🐳 Запуск через Docker (полный стек)
-
-```bash
-# Запустить всё (PostgreSQL, Redis, API, UI)
-docker compose -f docker/docker-compose.yml --profile app up -d
-
-# Применить миграции
-docker exec ai_chat_api python scripts/init_db.py
-docker exec ai_chat_api python scripts/seed_domains.py
-
-# Проверить логи
-docker compose -f docker/docker-compose.yml logs -f api
-```
-
-Приложение будет доступно:
-- **UI:** http://localhost:8501
-- **API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
+</details>
 
 ## 📁 Структура проекта
 
@@ -205,6 +170,18 @@ ai-chat/
 - ✅ Health checks с реальной проверкой зависимостей
 - ✅ 100+ тестов (unit + integration)
 
+### Phase 4: LLM + LangGraph Orchestration ✅
+- ✅ LLM Provider с поддержкой GPT-5.x (reasoning_effort, output_verbosity)
+- ✅ Конфигурация моделей через YAML (`config/llm.yaml`)
+- ✅ Fallback модель (gpt-5.2 → gpt-5-mini)
+- ✅ LangGraph StateGraph с узлами: router → generate/clarify/off_topic
+- ✅ ChatState с add_messages reducer для истории
+- ✅ AsyncPostgresSaver для персистентности состояния
+- ✅ ChatService со стримингом событий (StageEvent, TokenEvent)
+- ✅ Mock режим при отсутствии API ключа
+- ✅ Автоматические retry с exponential backoff (1s → 2s → 4s)
+- ✅ 128+ тестов (unit + integration)
+
 ## 🌐 API Endpoints
 
 | Endpoint | Метод | Описание |
@@ -310,14 +287,45 @@ docker compose -f docker/docker-compose.yml down -v
 docker compose -f docker/docker-compose.yml --profile app up -d --build
 ```
 
-## 📋 Переменные окружения
+## 📋 Конфигурация
+
+### Архитектурный принцип
+
+Конфигурация разделена по назначению:
+
+| Что | Где хранится | Почему |
+|-----|--------------|--------|
+| **Секреты** (API ключи) | `.env` / env vars | Не должны попадать в репозиторий |
+| **Инфраструктура** (URLs, ports) | `.env` / env vars | Зависят от окружения |
+| **Бизнес-логика** (модели LLM, параметры) | `config/*.yaml` | Читаемость + версионирование |
+
+### LLM конфигурация (`config/llm.yaml`)
+
+```yaml
+models:
+  default: "openai:gpt-5.2"      # Основная модель
+  fallback: "openai:gpt-5-mini"  # Резервная при ошибках
+
+generation:
+  reasoning_effort: "low"   # none/low/medium/high/xhigh
+  output_verbosity: "low"   # low/medium/high
+
+infrastructure:
+  timeout: 60
+  max_retries: 3
+  retry_delays: [1.0, 2.0, 4.0]
+```
+
+### Переменные окружения (`.env`)
 
 | Переменная | Описание | По умолчанию |
 |------------|----------|--------------|
+| **Secrets (API Keys)** | | |
+| `OPENAI_API_KEY` | OpenAI API key | - |
+| `ANTHROPIC_API_KEY` | Anthropic API key (optional) | - |
 | **App** | | |
 | `APP_ENV` | Окружение (development/staging/production) | development |
 | `APP_DEBUG` | Режим отладки | false |
-| `APP_VERSION` | Версия приложения | 0.1.0 |
 | **API Server** | | |
 | `API_HOST` | Хост сервера | 0.0.0.0 |
 | `API_PORT` | Порт сервера | 8000 |
@@ -325,18 +333,14 @@ docker compose -f docker/docker-compose.yml --profile app up -d --build
 | **Database** | | |
 | `DATABASE_URL` | PostgreSQL connection string | postgresql+asyncpg://... |
 | `DATABASE_POOL_SIZE` | Размер пула соединений | 5 |
-| `DATABASE_MAX_OVERFLOW` | Доп. соединения | 10 |
 | `DATABASE_ECHO` | SQL логирование | false |
 | **Redis** | | |
 | `REDIS_URL` | Redis connection string | redis://localhost:6379/0 |
 | **API URLs** | | |
 | `API_BASE_URL` | URL backend API | http://localhost:8000 |
 | `API_WS_URL` | URL WebSocket | ws://localhost:8000 |
-| **CORS** | | |
-| `CORS_ORIGINS` | Разрешённые origins | ["http://localhost:8501"] |
 | **WebSocket** | | |
 | `WS_HEARTBEAT_INTERVAL` | Интервал ping (сек) | 30 |
-| `WS_MESSAGE_MAX_SIZE` | Макс. размер сообщения | 65536 |
 | `WS_CONNECTION_TIMEOUT` | Таймаут соединения (сек) | 300 |
 | **UI** | | |
 | `UI_TITLE` | Заголовок страницы | AI Ассистент |
@@ -399,10 +403,10 @@ docker compose -f docker/docker-compose.yml --profile app up -d --build
 - [x] Phase 1: Streamlit UI + Mock
 - [x] Phase 2: FastAPI Backend + WebSocket
 - [x] Phase 3: Database Layer + Persistence
-- [ ] Phase 4: LLM Integration (OpenAI)
+- [x] Phase 4: LLM + LangGraph Orchestration
 - [ ] Phase 5: RAG (Hybrid Retrieval)
-- [ ] Phase 6: LangGraph Orchestration
-- [ ] Phase 7: MCP Tools Integration
+- [ ] Phase 6: MCP Tools Integration
+- [ ] Phase 7: Banner Generation Tool
 
 ## 📄 Лицензия
 

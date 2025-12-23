@@ -47,7 +47,7 @@ def load_domains_yaml(config_path: Path) -> list[dict[str, Any]]:
     with config_path.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
-    domains = config.get("domains", [])
+    domains: list[dict[str, Any]] = config.get("domains", [])
     logger.info(f"Loaded {len(domains)} domains from {config_path}")
 
     return domains
@@ -108,14 +108,14 @@ async def seed_domains(
                     continue
 
                 # Проверяем, существует ли домен
-                existing = await repo.get_by_slug(slug)
+                existing_domain = await repo.get_by_slug(slug)
 
-                if existing:
+                if existing_domain:
                     if dry_run:
                         logger.info(f"Would update domain: {slug}")
                     else:
                         await repo.update_domain(
-                            existing.id,
+                            existing_domain.id,
                             name=name,
                             description=description,
                             google_doc_url=google_doc_url,
