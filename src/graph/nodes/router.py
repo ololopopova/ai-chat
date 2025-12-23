@@ -99,7 +99,7 @@ async def router_node(state: ChatState) -> dict[str, Any]:
     # Формируем chain: prompt | model
     domains_list = _get_domains_list()
     provider = get_llm_provider()
-    model = cast(BaseChatModel, provider.model)
+    model = cast("BaseChatModel", provider.model)
     chain = ROUTER_PROMPT | model
 
     try:

@@ -71,7 +71,7 @@ async def generate_node(state: ChatState) -> dict[str, Any]:
     # Формируем chain: prompt | model
     context = _get_domain_context(domain)
     provider = get_llm_provider()
-    model = cast(BaseChatModel, provider.model)
+    model = cast("BaseChatModel", provider.model)
     chain = GENERATE_PROMPT | model
 
     # Собираем историю для MessagesPlaceholder
