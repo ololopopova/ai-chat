@@ -164,6 +164,7 @@ async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
     Создать async engine для тестовой БД.
 
     Scope: function — новый engine для каждого теста (для изоляции).
+    Пропускает тест если БД недоступна (для CI без БД).
     """
     from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -174,6 +175,16 @@ async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
         max_overflow=5,
         pool_pre_ping=True,
     )
+
+    # Проверяем доступность БД
+    try:
+        from sqlalchemy import text
+
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:
+        await engine.dispose()
+        pytest.skip("Database not available")
 
     try:
         yield engine
@@ -205,9 +216,9 @@ async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
 
     yield
 
-    # Cleanup после всех тестов (опционально)
-    # async with db_engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.drop_all)
+    # Cleanup после теста
+    async with db_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture
