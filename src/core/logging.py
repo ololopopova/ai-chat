@@ -281,34 +281,33 @@ def setup_logging() -> None:
 
     root_logger.addHandler(console_handler)
 
-    # === File Handler (production или если включен debug) ===
-    if not settings.is_development or settings.app_debug:
-        logs_dir = Path("logs")
-        logs_dir.mkdir(exist_ok=True)
+    # === File Handlers (всегда пишем в файлы) ===
+    logs_dir = Path("logs")
+    logs_dir.mkdir(exist_ok=True)
 
-        # Основной лог файл с ротацией
-        file_handler = RotatingFileHandler(
-            logs_dir / "app.log",
-            maxBytes=10 * 1024 * 1024,  # 10 MB
-            backupCount=5,
-            encoding="utf-8",
-        )
-        file_handler.setLevel(logging.INFO)
-        file_handler.addFilter(context_filter)
-        file_handler.setFormatter(JSONFormatter())
-        root_logger.addHandler(file_handler)
+    # Основной лог файл с ротацией
+    file_handler = RotatingFileHandler(
+        logs_dir / "app.log",
+        maxBytes=10 * 1024 * 1024,  # 10 MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.addFilter(context_filter)
+    file_handler.setFormatter(JSONFormatter())
+    root_logger.addHandler(file_handler)
 
-        # Отдельный файл для ошибок
-        error_handler = RotatingFileHandler(
-            logs_dir / "error.log",
-            maxBytes=10 * 1024 * 1024,  # 10 MB
-            backupCount=5,
-            encoding="utf-8",
-        )
-        error_handler.setLevel(logging.ERROR)
-        error_handler.addFilter(context_filter)
-        error_handler.setFormatter(JSONFormatter())
-        root_logger.addHandler(error_handler)
+    # Отдельный файл для ошибок
+    error_handler = RotatingFileHandler(
+        logs_dir / "error.log",
+        maxBytes=10 * 1024 * 1024,  # 10 MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.addFilter(context_filter)
+    error_handler.setFormatter(JSONFormatter())
+    root_logger.addHandler(error_handler)
 
     # Уменьшаем шум от библиотек
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
@@ -335,7 +334,3 @@ def get_logger(name: str) -> LoggerAdapter:
         setup_logging()
 
     return LoggerAdapter(logging.getLogger(name), {})
-
-
-# Для обратной совместимости — автоматическая настройка при импорте
-# (опционально, можно убрать если хотите явный вызов setup_logging())
