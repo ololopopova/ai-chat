@@ -347,7 +347,9 @@ class RAGService:
 
             chunk_opt = chunk_map.get(chunk_id)
             if chunk_opt:
-                header = chunk_opt.chunk_metadata.get("header") if chunk_opt.chunk_metadata else None
+                header = (
+                    chunk_opt.chunk_metadata.get("header") if chunk_opt.chunk_metadata else None
+                )
                 merged[chunk_id] = (final_score, chunk_opt.content, header)
 
         # Отсортировать по score (убывание)
