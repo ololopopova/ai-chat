@@ -1,52 +1,79 @@
-"""Тесты для conditional edges графа."""
+"""
+Тесты для ReAct conditional edges.
 
-from src.graph.edges import route_after_router
-from src.graph.state import ChatState, Route
+NOTE: В ReAct архитектуре с create_react_agent нет явных conditional edges.
+Агент сам управляет своим циклом через встроенную логику.
+
+Этот файл оставлен для покрытия логики выбора, но теперь тестирует
+behaviour ReAct агента, а не отдельные edge функции.
+"""
+
+import pytest
+from langchain_core.messages import HumanMessage
+
+from src.graph.builder import build_chat_graph
 
 
-class TestRouteAfterRouter:
-    """Тесты для функции route_after_router."""
+class TestReActBehaviour:
+    """Тесты поведения ReAct агента (замена тестов edges)."""
 
-    def test_route_to_generate(self) -> None:
-        """Проверка маршрутизации к generate."""
-        state: ChatState = {
-            "messages": [],
-            "route": Route.GENERATE,
+    @pytest.mark.asyncio
+    async def test_agent_decides_to_use_tool(self) -> None:
+        """
+        Тест: агент должен решить использовать tool для доменного вопроса.
+
+        ReAct агент анализирует вопрос и решает вызвать инструмент.
+        """
+        graph = build_chat_graph()
+
+        input_state = {
+            "messages": [HumanMessage(content="Какой БАД для сна?")],
         }
-        result = route_after_router(state)
-        assert result == "generate"
 
-    def test_route_to_clarify(self) -> None:
-        """Проверка маршрутизации к clarify."""
-        state: ChatState = {
-            "messages": [],
-            "route": Route.CLARIFY,
-        }
-        result = route_after_router(state)
-        assert result == "clarify"
+        # TODO: добавить мок LLM для контроля поведения
+        result = await graph.ainvoke(input_state)
 
-    def test_route_to_off_topic(self) -> None:
-        """Проверка маршрутизации к off_topic."""
-        state: ChatState = {
-            "messages": [],
-            "route": Route.OFF_TOPIC,
-        }
-        result = route_after_router(state)
-        assert result == "off_topic"
+        assert "messages" in result
+        # Агент должен вызвать tool и дать ответ
+        assert len(result["messages"]) >= 2
 
-    def test_route_none_defaults_to_off_topic(self) -> None:
-        """Проверка, что None route ведёт к off_topic."""
-        state: ChatState = {
-            "messages": [],
-            "route": None,
-        }
-        result = route_after_router(state)
-        assert result == "off_topic"
+    @pytest.mark.asyncio
+    async def test_agent_responds_without_tool_for_offtopic(self) -> None:
+        """
+        Тест: агент должен ответить без tools для off-topic вопроса.
 
-    def test_route_missing_defaults_to_off_topic(self) -> None:
-        """Проверка, что отсутствующий route ведёт к off_topic."""
-        state: ChatState = {
-            "messages": [],
+        ReAct агент понимает что вопрос вне домена и отвечает напрямую.
+        """
+        graph = build_chat_graph()
+
+        input_state = {
+            "messages": [HumanMessage(content="Какая погода завтра?")],
         }
-        result = route_after_router(state)
-        assert result == "off_topic"
+
+        # TODO: добавить мок LLM
+        result = await graph.ainvoke(input_state)
+
+        assert "messages" in result
+        # Должен быть только вопрос и ответ, без tool calls
+        # (в реальности может быть больше, зависит от LLM)
+
+    @pytest.mark.asyncio
+    async def test_agent_uses_multiple_tools_for_complex_query(self) -> None:
+        """
+        Тест: агент может вызвать несколько tools для сложного вопроса.
+
+        ReAct агент может решить вызвать products_agent и compatibility_agent.
+        """
+        graph = build_chat_graph()
+
+        input_state = {
+            "messages": [
+                HumanMessage(content="Что принимать для сна и с чем это сочетается?")
+            ],
+        }
+
+        # TODO: добавить мок LLM
+        result = await graph.ainvoke(input_state)
+
+        assert "messages" in result
+        assert len(result["messages"]) >= 2

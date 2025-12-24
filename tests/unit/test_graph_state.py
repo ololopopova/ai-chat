@@ -1,46 +1,36 @@
-"""Тесты для ChatState и state transitions."""
+"""Тесты для ChatState (ReAct архитектура)."""
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from src.graph.state import ChatState, Route, Stage
-
-
-class TestRoute:
-    """Тесты для Route enum."""
-
-    def test_route_values(self) -> None:
-        """Проверка значений Route."""
-        assert Route.GENERATE.value == "generate"
-        assert Route.CLARIFY.value == "clarify"
-        assert Route.OFF_TOPIC.value == "off_topic"
-
-    def test_route_from_string(self) -> None:
-        """Проверка создания Route из строки."""
-        assert Route("generate") == Route.GENERATE
-        assert Route("clarify") == Route.CLARIFY
-        assert Route("off_topic") == Route.OFF_TOPIC
+from src.graph.state import ChatState, Stage
 
 
 class TestStage:
-    """Тесты для Stage enum."""
+    """Тесты для Stage enum (ReAct)."""
 
     def test_stage_values(self) -> None:
-        """Проверка значений Stage."""
-        assert Stage.ROUTER.value == "router"
-        assert Stage.CLARIFY.value == "clarify"
-        assert Stage.RETRIEVE.value == "retrieve"
-        assert Stage.GENERATE.value == "generate"
+        """Проверка значений Stage для ReAct архитектуры."""
+        assert Stage.THINKING.value == "thinking"
+        assert Stage.CALLING_TOOL.value == "calling_tool"
+        assert Stage.SYNTHESIZING.value == "synthesizing"
+        assert Stage.COMPLETE.value == "complete"
+
+    def test_stage_from_string(self) -> None:
+        """Проверка создания Stage из строки."""
+        assert Stage("thinking") == Stage.THINKING
+        assert Stage("calling_tool") == Stage.CALLING_TOOL
+        assert Stage("synthesizing") == Stage.SYNTHESIZING
+        assert Stage("complete") == Stage.COMPLETE
 
 
 class TestChatState:
-    """Тесты для ChatState TypedDict."""
+    """Тесты для ChatState TypedDict (ReAct минималистичное состояние)."""
 
     def test_empty_state(self) -> None:
         """Проверка пустого состояния."""
         state: ChatState = {}
         assert state.get("messages") is None
-        assert state.get("route") is None
-        assert state.get("domain") is None
+        assert state.get("stage") is None
 
     def test_state_with_messages(self) -> None:
         """Проверка состояния с сообщениями."""
@@ -54,44 +44,32 @@ class TestChatState:
         assert state["messages"][0].content == "Hello"
         assert state["messages"][1].content == "Hi there!"
 
-    def test_state_with_route(self) -> None:
-        """Проверка состояния с маршрутом."""
-        state: ChatState = {
-            "messages": [],
-            "route": Route.GENERATE,
-            "domain": "marketing",
-        }
-        assert state["route"] == Route.GENERATE
-        assert state["domain"] == "marketing"
-
     def test_state_with_stage(self) -> None:
         """Проверка состояния со стадией."""
         state: ChatState = {
             "messages": [],
-            "stage": Stage.ROUTER,
+            "stage": Stage.THINKING,
         }
-        assert state["stage"] == Stage.ROUTER
+        assert state["stage"] == Stage.THINKING
 
-    def test_state_with_metadata(self) -> None:
-        """Проверка состояния с метаданными."""
-        state: ChatState = {
-            "messages": [],
-            "confidence": 0.85,
-            "matched_domains": ["marketing", "product"],
-        }
-        assert state["confidence"] == 0.85
-        assert state["matched_domains"] == ["marketing", "product"]
+    def test_state_full_react_cycle(self) -> None:
+        """
+        Проверка состояния через ReAct цикл.
 
-    def test_full_state(self) -> None:
-        """Проверка полного состояния."""
+        ReAct агент сам управляет messages:
+        - HumanMessage: вопрос пользователя
+        - AIMessage с tool_calls: агент решил вызвать инструмент
+        - ToolMessage: результат от инструмента
+        - AIMessage: финальный ответ
+        """
         state: ChatState = {
-            "messages": [HumanMessage(content="Test")],
-            "route": Route.CLARIFY,
-            "domain": None,
-            "stage": Stage.CLARIFY,
-            "confidence": 0.5,
-            "matched_domains": ["marketing", "support"],
+            "messages": [
+                HumanMessage(content="Что принимать для сна?"),
+                # AIMessage с tool_calls (добавляется ReAct агентом)
+                # ToolMessage с результатом (добавляется ReAct агентом)
+                # AIMessage с финальным ответом
+            ],
+            "stage": Stage.COMPLETE,
         }
-        assert state["route"] == Route.CLARIFY
-        assert state["stage"] == Stage.CLARIFY
-        assert len(state["matched_domains"]) == 2
+        assert len(state["messages"]) > 0
+        assert state["stage"] == Stage.COMPLETE

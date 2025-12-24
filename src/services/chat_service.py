@@ -1,4 +1,4 @@
-"""ChatService — оркестрация чата с LangGraph и стримингом событий."""
+"""ChatService — оркестрация ReAct Main Agent с LangGraph и стримингом событий."""
 
 from __future__ import annotations
 
@@ -97,22 +97,27 @@ class ErrorEvent(ChatEvent):
         }
 
 
-# Маппинг стадий для UI
+# Маппинг стадий для UI (ReAct архитектура)
 STAGE_MESSAGES: dict[Stage, str] = {
-    Stage.ROUTER: "Определяю тему запроса...",
-    Stage.CLARIFY: "Нужно уточнение...",
-    Stage.RETRIEVE: "Ищу информацию...",
-    Stage.GENERATE: "Формирую ответ...",
-    Stage.OFF_TOPIC: "Вопрос вне темы...",
+    Stage.THINKING: "Анализирую запрос...",
+    Stage.CALLING_TOOL: "Вызываю специалиста...",
+    Stage.SYNTHESIZING: "Формирую ответ...",
+    Stage.COMPLETE: "Готово",
 }
 
 
 class ChatService:
     """
-    Сервис обработки чат-сообщений.
+    Сервис обработки чат-сообщений с ReAct Main Agent.
 
-    Оркестрирует LangGraph и предоставляет стриминг событий
+    Оркестрирует LangGraph ReAct агента и предоставляет стриминг событий
     для WebSocket клиентов.
+
+    ReAct Agent сам управляет своим циклом:
+    - Думает (анализ запроса)
+    - Действует (вызов tools/субагентов)
+    - Наблюдает (получение результатов)
+    - Синтезирует (финальный ответ)
 
     Поддерживает:
     - Стриминг стадий (StageEvent) для timeline UI
@@ -181,16 +186,16 @@ class ChatService:
         }
 
         try:
-            # Stage: Router
+            # Stage: Thinking (начало обработки)
             yield StageEvent(
-                stage=Stage.ROUTER.value,
+                stage=Stage.THINKING.value,
                 status="active",
-                message=STAGE_MESSAGES[Stage.ROUTER],
+                message=STAGE_MESSAGES[Stage.THINKING],
             )
 
             full_response = ""
-            current_stage: Stage | None = None
-            current_node: str | None = None  # Отслеживаем текущий узел
+            current_stage: Stage | None = Stage.THINKING
+            is_calling_tool = False
 
             # Используем astream_events для реального стриминга токенов
             async for event in self.graph.astream_events(
@@ -202,43 +207,54 @@ class ChatService:
                 event_name = event.get("name", "")
                 event_data = event.get("data", {})
 
-                # Обновление стадии при входе в узел
-                if event_kind == "on_chain_start" and event_name in (
-                    "router",
-                    "generate",
-                    "clarify",
-                    "off_topic",
-                ):
-                    current_node = event_name
+                # Обнаружение вызова tool (субагента)
+                if event_kind == "on_tool_start":
+                    tool_name = event_name
+                    logger.debug(f"Tool called: {tool_name}")
 
-                    # Определяем стадию по имени узла
-                    stage_map = {
-                        "router": Stage.ROUTER,
-                        "generate": Stage.GENERATE,
-                        "clarify": Stage.CLARIFY,
-                        "off_topic": Stage.OFF_TOPIC,
-                    }
-                    new_stage = stage_map.get(event_name)
-                    if new_stage and new_stage != current_stage:
-                        # Завершаем предыдущую
+                    # Переключаем стадию на CALLING_TOOL
+                    if not is_calling_tool:
                         if current_stage:
-                            prev_value = (
-                                current_stage.value
-                                if isinstance(current_stage, Stage)
-                                else str(current_stage)
-                            )
-                            yield StageEvent(stage=prev_value, status="completed")
+                            yield StageEvent(stage=current_stage.value, status="completed")
 
-                        current_stage = new_stage
-                        stage_message = STAGE_MESSAGES.get(current_stage, "Обработка...")
+                        current_stage = Stage.CALLING_TOOL
+                        is_calling_tool = True
+
+                        # Красивые сообщения для разных агентов
+                        tool_messages = {
+                            "products_agent": "Консультируюсь со специалистом по продуктам...",
+                            "compatibility_agent": "Проверяю сочетаемость...",
+                            "marketing_agent": "Обращаюсь к маркетологу...",
+                        }
+                        message_text = tool_messages.get(
+                            tool_name, STAGE_MESSAGES[Stage.CALLING_TOOL]
+                        )
+
                         yield StageEvent(
                             stage=current_stage.value,
                             status="active",
-                            message=stage_message,
+                            message=message_text,
                         )
 
-                # Стриминг токенов от LLM — ТОЛЬКО от generate node!
-                elif event_kind == "on_chat_model_stream" and current_node == "generate":
+                # Tool завершил работу
+                elif event_kind == "on_tool_end":
+                    logger.debug(f"Tool completed: {event_name}")
+                    # Остаёмся в CALLING_TOOL если есть ещё tools
+
+                # Стриминг финального ответа от LLM
+                elif event_kind == "on_chat_model_stream":
+                    # Если начался стриминг финального ответа — переключаемся на SYNTHESIZING
+                    if current_stage != Stage.SYNTHESIZING:
+                        if current_stage:
+                            yield StageEvent(stage=current_stage.value, status="completed")
+
+                        current_stage = Stage.SYNTHESIZING
+                        yield StageEvent(
+                            stage=current_stage.value,
+                            status="active",
+                            message=STAGE_MESSAGES[Stage.SYNTHESIZING],
+                        )
+
                     chunk = event_data.get("chunk")
                     if chunk and hasattr(chunk, "content"):
                         content = chunk.content
@@ -246,7 +262,7 @@ class ChatService:
                             full_response += content
                             yield TokenEvent(token=content)
                         elif isinstance(content, list):
-                            # GPT-5.x формат
+                            # GPT-5.x формат с блоками
                             for block in content:
                                 if isinstance(block, dict) and block.get("type") == "text":
                                     text = block.get("text", "")
@@ -254,23 +270,7 @@ class ChatService:
                                         full_response += text
                                         yield TokenEvent(token=text)
 
-                # Завершение узла — для clarify/off_topic отправляем ответ
-                elif event_kind == "on_chain_end" and event_name in ("clarify", "off_topic"):
-                    output: dict[str, Any] = event_data.get("output", {})
-                    messages: list[Any] = output.get("messages", [])
-                    if messages:
-                        last_msg = messages[-1]
-                        if hasattr(last_msg, "content"):
-                            from src.llm.utils import extract_text_from_response
-
-                            content = extract_text_from_response(last_msg.content)
-                            if content and not full_response:
-                                full_response = content
-                                # Стримим посимвольно для эффекта печати
-                                for char in content:
-                                    yield TokenEvent(token=char)
-
-                # Финальное сообщение (fallback)
+                # Финальное сообщение (fallback если не было стриминга)
                 elif event_kind == "on_chain_end" and event_name == "LangGraph":
                     output_final: dict[str, Any] = event_data.get("output", {})
                     messages_final: list[Any] = output_final.get("messages", [])
@@ -282,6 +282,7 @@ class ChatService:
                             content = extract_text_from_response(last_msg.content)
                             if content:
                                 full_response = content
+                                # Стримим посимвольно для эффекта печати
                                 for char in content:
                                     yield TokenEvent(token=char)
 
