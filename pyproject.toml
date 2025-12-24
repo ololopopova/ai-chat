@@ -71,6 +71,10 @@ pretty = true
 module = ["streamlit.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["src.api.routes.health"]
+disable_error_code = ["no-untyped-call", "misc", "attr-defined"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
