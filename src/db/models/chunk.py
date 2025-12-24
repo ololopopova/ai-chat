@@ -25,7 +25,9 @@ if TYPE_CHECKING:
     from src.db.models.domain import Domain
 
 
-# Размерность embedding (OpenAI text-embedding-3-small = 1536)
+# Размерность embedding (OpenAI text-embedding-3-large с dimensions=1536)
+# Примечание: pgvector имеет ограничение 2000 dims для индексов
+# Поэтому используем 1536 вместо полных 3072
 EMBEDDING_DIMENSION = 1536
 
 
@@ -38,7 +40,7 @@ class Chunk(Base):
         domain_id: Ссылка на домен.
         content: Текст фрагмента.
         content_tsv: Полнотекстовый индекс (generated column).
-        embedding: Векторное представление (1536 dims для OpenAI).
+        embedding: Векторное представление (3072 dims для OpenAI text-embedding-3-large).
         chunk_index: Порядковый номер в документе.
         metadata: Дополнительные данные (заголовок секции и т.д.).
         created_at: Время создания.
@@ -112,6 +114,7 @@ class Chunk(Base):
         ),
         # HNSW индекс для векторного поиска (cosine distance)
         # m=16, ef_construction=64 — хороший баланс скорости и качества
+        # Используем HNSW т.к. 1536 dims < 2000 (лимит pgvector)
         Index(
             "ix_chunks_embedding",
             "embedding",

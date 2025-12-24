@@ -262,12 +262,12 @@ def sample_domain() -> dict[str, Any]:
 
 @pytest.fixture
 def sample_embedding() -> list[float]:
-    """Тестовый embedding вектор (1536 dims для OpenAI)."""
+    """Тестовый embedding вектор (3072 dims для OpenAI text-embedding-3-large)."""
     import random
 
     random.seed(42)  # Для воспроизводимости
     # Генерируем нормализованный вектор
-    vec = [random.random() for _ in range(1536)]
+    vec = [random.random() for _ in range(3072)]
     norm = sum(x * x for x in vec) ** 0.5
     return [x / norm for x in vec]
 
@@ -348,3 +348,37 @@ def chat_service_no_checkpointer():
 def sample_thread_id() -> str:
     """Тестовый thread_id."""
     return str(uuid.uuid4())
+
+
+# ============================================================
+# Ingest Service / RAG Fixtures (Phase 5)
+# ============================================================
+
+
+@pytest.fixture
+def db_session_factory():
+    """Mock session factory для Ingest/RAG тестов."""
+    from unittest.mock import AsyncMock
+
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_google_doc_html() -> str:
+    """Mock HTML контент Google Doc для тестов."""
+    return """
+    <html>
+    <body>
+        <h1>Тестовая секция 1</h1>
+        <p>Контент первой секции</p>
+        <h1>Тестовая секция 2</h1>
+        <p>Контент второй секции</p>
+    </body>
+    </html>
+    """
+
+
+@pytest.fixture
+def mock_embeddings_3072() -> list[list[float]]:
+    """Mock embeddings для тестов (3072 dims)."""
+    return [[0.1] * 3072, [0.2] * 3072, [0.3] * 3072]

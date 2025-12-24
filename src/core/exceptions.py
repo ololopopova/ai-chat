@@ -143,3 +143,38 @@ class TransactionError(RepositoryError):
         super().__init__(message)
         self.code = "TRANSACTION_ERROR"
         self.operation = operation
+
+
+# ==========================================
+# Ingest Service Exceptions
+# ==========================================
+
+
+class IngestError(AppError):
+    """Ошибка при загрузке и индексации документов."""
+
+    def __init__(self, message: str, doc_id: str | None = None) -> None:
+        """
+        Инициализация ошибки инжеста.
+
+        Args:
+            message: Текст ошибки.
+            doc_id: ID документа (если применимо).
+        """
+        super().__init__(message, code="INGEST_ERROR")
+        self.doc_id = doc_id
+
+
+class EmbeddingError(AppError):
+    """Ошибка генерации embeddings."""
+
+    def __init__(self, message: str, batch_size: int | None = None) -> None:
+        """
+        Инициализация ошибки embeddings.
+
+        Args:
+            message: Текст ошибки.
+            batch_size: Размер batch (если применимо).
+        """
+        super().__init__(message, code="EMBEDDING_ERROR")
+        self.batch_size = batch_size
