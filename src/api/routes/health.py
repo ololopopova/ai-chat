@@ -46,7 +46,7 @@ async def check_redis() -> tuple[bool, str]:
         from src.core.config import get_settings
 
         settings = get_settings()
-        client = redis.from_url(
+        client: redis.Redis[bytes] = redis.from_url(  # type: ignore
             settings.redis_url,
             socket_timeout=settings.redis_socket_timeout,
             socket_connect_timeout=settings.redis_socket_connect_timeout,
@@ -54,10 +54,10 @@ async def check_redis() -> tuple[bool, str]:
 
         try:
             async with asyncio.timeout(5.0):
-                await client.ping()
+                await client.ping()  # type: ignore[misc]
                 return (True, "ok")
         finally:
-            await client.aclose()  # type: ignore[attr-defined]
+            await client.close()
     except Exception as e:
         logger.warning("Redis health check failed", extra={"error": str(e)})
         return (False, f"error: {type(e).__name__}")

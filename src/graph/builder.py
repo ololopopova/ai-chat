@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from langgraph.prebuilt import create_react_agent
 
@@ -12,6 +12,7 @@ from src.graph.tools import compatibility_agent, marketing_agent, products_agent
 from src.llm import get_llm_provider
 
 if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
     from langgraph.checkpoint.base import BaseCheckpointSaver
     from langgraph.graph.state import CompiledStateGraph
 
@@ -56,7 +57,8 @@ def build_chat_graph(
 
     # Получаем LLM провайдер
     provider = get_llm_provider()
-    llm = provider.model
+    # Cast к BaseChatModel для mypy (MockChatModel совместим с BaseChatModel)
+    llm = cast("BaseChatModel", provider.model)
 
     # Список инструментов (субагентов) доступных Main Agent
     tools = [
