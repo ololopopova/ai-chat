@@ -8,8 +8,7 @@
 
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, Tag
-from bs4 import NavigableString  # type: ignore[attr-defined]
+from bs4 import BeautifulSoup, NavigableString, Tag  # type: ignore[attr-defined]
 
 from src.core.logging import get_logger
 
