@@ -1,15 +1,15 @@
-"""Сборка графа LangGraph."""
+"""Сборка ReAct Main Agent графа."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from langgraph.graph import END, START, StateGraph
+from langgraph.prebuilt import create_react_agent
 
 from src.core.logging import get_logger
-from src.graph.edges import route_after_router
-from src.graph.nodes import clarify_node, generate_node, off_topic_node, router_node
-from src.graph.state import ChatState
+from src.graph.prompts import MAIN_AGENT_SYSTEM_PROMPT
+from src.graph.tools import compatibility_agent, marketing_agent, products_agent
+from src.llm import get_llm_provider
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -22,57 +22,78 @@ def build_chat_graph(
     checkpointer: BaseCheckpointSaver[Any] | None = None,
 ) -> CompiledStateGraph[Any]:
     """
-    Построить и скомпилировать граф чата.
+    Построить и скомпилировать ReAct Main Agent граф.
 
-    Структура графа:
-        START → router ──┬─→ generate → END
-                        ├─→ clarify  → END
-                        └─→ off_topic → END
+    Новая архитектура:
+        START → main_agent (ReAct loop) → END
+                     ↓
+            tools (при необходимости):
+            - products_agent
+            - compatibility_agent
+            - marketing_agent
+
+    Main Agent — это интеллектуальный ReAct агент, который:
+    1. Анализирует запрос пользователя
+    2. Решает какие инструменты (субагенты) нужно вызвать
+    3. Вызывает один или несколько инструментов
+    4. Синтезирует финальный ответ на основе полученных данных
+    5. Или отвечает напрямую если инструменты не нужны (например, off-topic)
 
     Args:
         checkpointer: Checkpointer для персистентности состояния.
-                     Если None, состояние не сохраняется.
+                     Если None, состояние не сохраняется между вызовами.
 
     Returns:
-        Скомпилированный граф, готовый к использованию.
+        Скомпилированный ReAct граф, готовый к использованию.
+
+    Example:
+        >>> graph = build_chat_graph()
+        >>> result = await graph.ainvoke({
+        ...     "messages": [{"role": "user", "content": "Что принимать для сна?"}]
+        ... })
     """
-    logger.info("Building chat graph")
+    logger.info("Building ReAct Main Agent graph")
 
-    # Создаём StateGraph с ChatState
-    builder = StateGraph(ChatState)
+    # Получаем LLM провайдер
+    provider = get_llm_provider()
+    llm = provider.model  # MockChatModel теперь SimpleChatModel (BaseChatModel)
 
-    # Добавляем узлы
-    builder.add_node("router", router_node)
-    builder.add_node("generate", generate_node)
-    builder.add_node("clarify", clarify_node)
-    builder.add_node("off_topic", off_topic_node)
+    # Список инструментов (субагентов) доступных Main Agent
+    tools = [
+        products_agent,
+        compatibility_agent,
+        marketing_agent,
+    ]
 
-    # Добавляем рёбра
-    # START -> router
-    builder.add_edge(START, "router")
-
-    # router -> conditional edge
-    builder.add_conditional_edges(
-        "router",
-        route_after_router,
-        {
-            "generate": "generate",
-            "clarify": "clarify",
-            "off_topic": "off_topic",
+    logger.debug(
+        "Registered tools",
+        extra={
+            "tools": [tool.name for tool in tools],
+            "count": len(tools),
         },
     )
 
-    # Все конечные узлы -> END
-    builder.add_edge("generate", END)
-    builder.add_edge("clarify", END)
-    builder.add_edge("off_topic", END)
-
-    # Компилируем граф
-    graph = builder.compile(checkpointer=checkpointer)
+    # Создаём ReAct агента с инструментами
+    # create_react_agent автоматически:
+    # - Создаёт граф с циклом: думай → действуй → наблюдай → думай
+    # - Управляет вызовами tools
+    # - Обрабатывает ToolMessage
+    # - Формирует финальный ответ
+    #
+    # System prompt передаётся через параметр prompt (строка или SystemMessage)
+    graph = create_react_agent(
+        model=llm,
+        tools=tools,
+        prompt=MAIN_AGENT_SYSTEM_PROMPT,  # ✅ Правильный способ!
+        checkpointer=checkpointer,
+    )
 
     logger.info(
-        "Chat graph built",
-        extra={"has_checkpointer": checkpointer is not None},
+        "ReAct Main Agent graph built successfully",
+        extra={
+            "has_checkpointer": checkpointer is not None,
+            "tools_count": len(tools),
+        },
     )
 
     return graph

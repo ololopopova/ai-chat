@@ -1,29 +1,109 @@
-# Конфигурация доменов (тематических областей)
-# Каждый домен привязан к Google Doc с базой знаний
+# Конфигурация агентов для ReAct Main Agent
+# Main Agent имеет доступ к специализированным субагентам (tools)
 
-domains:
+# =============================================================================
+# АГЕНТЫ (TOOLS)
+# =============================================================================
+
+agents:
+  - id: products
+    name: Products Agent
+    description: Эксперт по БАДам, микродозингу грибов, биохакингу, рецептам и привычкам
+    tool_name: products_agent
+    enabled: true
+    # База знаний (будет использоваться в Phase 6)
+    google_docs:
+      - https://docs.google.com/document/d/10UelJwksL3T57zC4vGvgjyq_ePlzr_e7HdmJgciM3Wk/edit?tab=t.0#heading=h.9bduimapb6r3
+    # Топики для RAG индексации
+    topics:
+      - БАДы и добавки
+      - Дозировки и схемы приёма
+      - Микродозинг грибов
+      - Курс биохакинга
+      - Рецепты и привычки
+
+  - id: compatibility
+    name: Compatibility Agent
+    description: Эксперт по сочетаемости БАДов между собой и анализу взаимодействий
+    tool_name: compatibility_agent
+    enabled: true
+    # База знаний (будет использоваться в Phase 7)
+    google_docs:
+      - https://docs.google.com/document/d/121TlSVzWpb4JkArsiUSnwxO1F07YPLJwaE1tettaxWs/edit?tab=t.gzqntu9ney49#heading=h.mkkf48j5v03f
+    topics:
+      - Совместимость БАДов
+      - Синергетические эффекты
+      - Опасные комбинации
+      - Рекомендации по сочетанию
+
   - id: marketing
-    name: Маркетинг и реклама
-    description: Вопросы о маркетинговых стратегиях, рекламных кампаниях, брендинге
-    google_doc_url: https://docs.google.com/document/d/example-marketing-doc
+    name: Marketing Agent
+    description: Эксперт по маркетингу, генерации баннеров и анализу целевой аудитории
+    tool_name: marketing_agent
     enabled: true
+    # Пока без базы знаний (использует MCP tools)
+    google_docs: []
+    # MCP инструменты (будут подключены в Phase 8)
+    mcp_tools:
+      - banner_generator
+      - audience_analyzer
+    topics:
+      - Генерация баннеров
+      - Анализ ЦА
+      - Маркетинговые стратегии
+      - Брендинг
 
-  - id: product
-    name: Продуктовая разработка
-    description: Вопросы о продуктовом менеджменте, roadmap, фичах
-    google_doc_url: https://docs.google.com/document/d/example-product-doc
-    enabled: true
+# =============================================================================
+# НАСТРОЙКИ MAIN AGENT
+# =============================================================================
 
-  - id: support
-    name: Техническая поддержка
-    description: Часто задаваемые вопросы, решение проблем
-    google_doc_url: https://docs.google.com/document/d/example-support-doc
-    enabled: true
+main_agent: 
+  # Максимальное количество итераций ReAct цикла
+  max_iterations: 10
+  
+  # Таймаут на выполнение одного запроса (секунды)
+  timeout: 60
 
-# Настройки маршрутизации
-routing:
-  # Если не удалось определить домен - считать off-topic
-  fallback_to_offtopic: true
-  # Если совпало несколько доменов - запросить уточнение
-  ask_clarification_on_multiple: true
+# =============================================================================
+# НАСТРОЙКИ СУБАГЕНТОВ
+# =============================================================================
 
+subagents:
+  # Разрешить параллельные вызовы субагентов
+  # (пока не поддерживается в create_react_agent, reserved для будущего)
+  allow_parallel: false
+  
+  # Максимальное количество субагентов в одном запросе
+  max_per_request: 3
+  
+  # Таймаут на вызов одного субагента (секунды)
+  timeout: 30
+
+# =============================================================================
+# RAG НАСТРОЙКИ (для будущих фаз)
+# =============================================================================
+
+rag:
+  # Количество чанков для retrieval
+  top_k: 5
+  
+  # Минимальный score для включения чанка
+  min_relevance_score: 0.7
+  
+  # Hybrid search: веса для dense/sparse
+  dense_weight: 0.7
+  sparse_weight: 0.3
+
+# =============================================================================
+# OFF-TOPIC HANDLING
+# =============================================================================
+
+off_topic:
+  # Темы для сообщения об off-topic запросах
+  available_topics:
+    - "БАДы и добавки (дозировки, схемы приёма, рекомендации)"
+    - "Сочетаемость продуктов (что можно комбинировать, синергия)"
+    - "Маркетинг (создание баннеров, анализ ЦА, стратегии)"
+  
+  # Шаблон сообщения (если нужно переопределить дефолтный из промпта)
+  custom_message: null

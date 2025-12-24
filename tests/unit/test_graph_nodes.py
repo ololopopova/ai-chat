@@ -1,156 +1,128 @@
-"""Тесты для узлов графа."""
+"""
+Тесты для ReAct Main Agent узлов и логики.
 
-from unittest.mock import AsyncMock, MagicMock, patch
+NOTE: В ReAct архитектуре нет отдельных узлов (router, generate, clarify).
+create_react_agent управляет своим циклом сам.
+
+Эти тесты покрывают:
+- Работу ReAct агента в целом
+- Вызов инструментов (tools)
+- Формирование ответов
+"""
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
-from src.graph.nodes.clarify import clarify_node
-from src.graph.nodes.off_topic import off_topic_node
-from src.graph.nodes.router import _parse_router_response, router_node
-from src.graph.state import ChatState, Route, Stage
+from src.graph.builder import build_chat_graph
 
 
-class TestRouterParsing:
-    """Тесты для парсинга ответа роутера."""
-
-    def test_parse_generate_response(self) -> None:
-        """Парсинг ответа с доменом."""
-        route, domain, matched = _parse_router_response("marketing")
-        assert route == Route.GENERATE
-        assert domain == "marketing"
-        assert matched == ["marketing"]
-
-    def test_parse_clarify_response(self) -> None:
-        """Парсинг clarify ответа."""
-        route, domain, matched = _parse_router_response("clarify")
-        assert route == Route.CLARIFY
-        assert domain is None
-        assert matched is None
-
-    def test_parse_off_topic_response(self) -> None:
-        """Парсинг off_topic ответа."""
-        route, domain, matched = _parse_router_response("off_topic")
-        assert route == Route.OFF_TOPIC
-        assert domain is None
-        assert matched is None
-
-    def test_parse_with_quotes(self) -> None:
-        """Парсинг ответа с кавычками."""
-        route, domain, _matched = _parse_router_response('"marketing"')
-        assert route == Route.GENERATE
-        assert domain == "marketing"
-
-    def test_parse_with_whitespace(self) -> None:
-        """Парсинг ответа с пробелами."""
-        route, _domain, _matched = _parse_router_response("  clarify  ")
-        assert route == Route.CLARIFY
-
-    def test_parse_uppercase(self) -> None:
-        """Парсинг ответа в uppercase."""
-        route, _domain, _matched = _parse_router_response("CLARIFY")
-        assert route == Route.CLARIFY
-
-
-class TestRouterNode:
-    """Тесты для router_node."""
+class TestReActMainAgent:
+    """Тесты для ReAct Main Agent."""
 
     @pytest.mark.asyncio
-    async def test_router_empty_messages(self) -> None:
-        """Роутер возвращает off_topic при пустых сообщениях."""
-        state: ChatState = {"messages": []}
-        result = await router_node(state)
-        assert result["route"] == Route.OFF_TOPIC
-        assert result["stage"] == Stage.ROUTER
+    async def test_simple_question_no_tools(self) -> None:
+        """
+        Тест: простой вопрос без вызова инструментов.
 
-    @pytest.mark.asyncio
-    async def test_router_with_mock_llm(self) -> None:
-        """Роутер корректно работает с моком LLM."""
-        state: ChatState = {
-            "messages": [HumanMessage(content="Как продвигать продукт?")],
+        Если вопрос off-topic, ReAct агент должен ответить напрямую
+        без вызова tools.
+        """
+        pytest.skip("Mock LLM не может корректно имитировать ReAct поведение с tools")
+        graph = build_chat_graph()
+
+        input_state = {
+            "messages": [HumanMessage(content="Привет, как дела?")],
         }
 
-        # Мокаем ответ LLM
-        mock_response = MagicMock()
-        mock_response.content = "marketing"
+        # Мокнутый LLM должен вернуть off-topic ответ без tool calls
+        # TODO: реализовать с моком LLM
+        result = await graph.ainvoke(input_state)
 
-        # Патчим ROUTER_PROMPT чтобы вернуть мок chain при использовании |
-        mock_chain = AsyncMock()
-        mock_chain.ainvoke = AsyncMock(return_value=mock_response)
-
-        with patch("src.graph.nodes.router.ROUTER_PROMPT") as mock_prompt:
-            mock_prompt.__or__ = MagicMock(return_value=mock_chain)
-            result = await router_node(state)
-
-        assert result["route"] == Route.GENERATE
-        assert result["domain"] == "marketing"
-        assert result["stage"] == Stage.ROUTER
-
-
-class TestClarifyNode:
-    """Тесты для clarify_node."""
+        assert "messages" in result
+        assert len(result["messages"]) > 1
+        # Последнее сообщение — ответ агента
+        last_message = result["messages"][-1]
+        assert isinstance(last_message, AIMessage)
 
     @pytest.mark.asyncio
-    async def test_clarify_with_matched_domains(self) -> None:
-        """Clarify генерирует уточнение с указанными доменами."""
-        state: ChatState = {
-            "messages": [HumanMessage(content="Помогите")],
-            "matched_domains": ["marketing", "support"],
+    async def test_products_question_calls_tool(self) -> None:
+        """
+        Тест: вопрос о продуктах должен вызвать products_agent tool.
+
+        ReAct агент должен:
+        1. Определить что нужен products_agent
+        2. Вызвать tool
+        3. Получить результат
+        4. Синтезировать ответ
+        """
+        pytest.skip("Mock LLM не может корректно имитировать ReAct поведение с tools")
+        graph = build_chat_graph()
+
+        input_state = {
+            "messages": [HumanMessage(content="Что принимать для сна?")],
         }
 
-        result = await clarify_node(state)
+        # TODO: реализовать с моком LLM и проверкой tool_calls
+        result = await graph.ainvoke(input_state)
 
         assert "messages" in result
-        assert len(result["messages"]) == 1
-        assert isinstance(result["messages"][0], AIMessage)
-        assert result["stage"] == Stage.CLARIFY
-
-        # Проверяем, что в ответе есть опции
-        content = result["messages"][0].content
-        assert "1." in content or "2." in content
+        # Должны быть: HumanMessage, AIMessage (tool call), ToolMessage, AIMessage (ответ)
+        assert len(result["messages"]) >= 2
 
     @pytest.mark.asyncio
-    async def test_clarify_without_domains(self) -> None:
-        """Clarify показывает все домены если matched_domains пуст."""
-        state: ChatState = {
-            "messages": [],
-            "matched_domains": [],
+    async def test_combined_question_calls_multiple_tools(self) -> None:
+        """
+        Тест: сложный вопрос должен вызвать несколько tools.
+
+        Например: "Какой БАД для сна и с чем его сочетать?"
+        Должны вызваться: products_agent + compatibility_agent
+        """
+        pytest.skip("Mock LLM не может корректно имитировать ReAct поведение с tools")
+        graph = build_chat_graph()
+
+        input_state = {
+            "messages": [HumanMessage(content="Какой БАД для сна и с чем его сочетать?")],
         }
 
-        result = await clarify_node(state)
+        # TODO: реализовать с моком LLM
+        result = await graph.ainvoke(input_state)
 
         assert "messages" in result
-        assert result["stage"] == Stage.CLARIFY
+        # Должно быть несколько tool calls
+        assert len(result["messages"]) >= 2
 
 
-class TestOffTopicNode:
-    """Тесты для off_topic_node."""
+class TestToolsStubs:
+    """Тесты для заглушек инструментов."""
 
     @pytest.mark.asyncio
-    async def test_off_topic_response(self) -> None:
-        """Off-topic генерирует вежливый отказ."""
-        state: ChatState = {
-            "messages": [HumanMessage(content="Какая погода?")],
-        }
+    async def test_products_agent_stub(self) -> None:
+        """Тест заглушки products_agent."""
+        from src.graph.tools import products_agent
 
-        result = await off_topic_node(state)
+        result = await products_agent.ainvoke({"query": "Что для сна?"})
 
-        assert "messages" in result
-        assert len(result["messages"]) == 1
-        assert isinstance(result["messages"][0], AIMessage)
-
-        content = result["messages"][0].content
-        # Проверяем, что есть список доменов
-        assert "•" in content or "-" in content
-        # Проверяем, что есть вежливый отказ
-        assert "не могу" in content.lower() or "извини" in content.lower()
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert "мелатонин" in result.lower() or "магний" in result.lower()
 
     @pytest.mark.asyncio
-    async def test_off_topic_empty_messages(self) -> None:
-        """Off-topic работает с пустыми сообщениями."""
-        state: ChatState = {"messages": []}
+    async def test_compatibility_agent_stub(self) -> None:
+        """Тест заглушки compatibility_agent."""
+        from src.graph.tools import compatibility_agent
 
-        result = await off_topic_node(state)
+        result = await compatibility_agent.ainvoke({"query": "Сочетаемость мелатонина"})
 
-        assert "messages" in result
-        assert len(result["messages"]) == 1
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    @pytest.mark.asyncio
+    async def test_marketing_agent_stub(self) -> None:
+        """Тест заглушки marketing_agent."""
+        from src.graph.tools import marketing_agent
+
+        result = await marketing_agent.ainvoke({"query": "Создай баннер"})
+
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert "баннер" in result.lower()

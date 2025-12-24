@@ -17,22 +17,29 @@ from src.core.config import Settings, clear_settings_cache, get_settings
 def domains_yaml_content() -> str:
     """Тестовое содержимое domains.yaml."""
     return """
-domains:
+agents:
   - id: test_domain_1
     name: Тестовый домен 1
     description: Описание тестового домена 1
-    google_doc_url: https://docs.google.com/document/d/test1
+    google_docs:
+      - https://docs.google.com/document/d/test1
     enabled: true
 
   - id: test_domain_2
     name: Тестовый домен 2
     description: Описание тестового домена 2
-    google_doc_url: https://docs.google.com/document/d/test2
+    google_docs:
+      - https://docs.google.com/document/d/test2
     enabled: false
 
-routing:
-  fallback_to_offtopic: true
-  ask_clarification_on_multiple: true
+main_agent:
+  model: gpt-5.2
+  max_iterations: 10
+  timeout: 60
+
+subagents:
+  allow_parallel_agents: true
+  max_parallel_agents: 3
 """
 
 
@@ -162,8 +169,8 @@ class TestDomainsConfigLoading:
         clear_domains_cache()
         config = load_domains_config(temp_domains_file)
 
-        assert "domains" in config
-        assert len(config["domains"]) == 2
+        assert "agents" in config
+        assert len(config["agents"]) == 2
 
     def test_load_domains_config_file_not_found(self) -> None:
         """Ошибка при отсутствии файла конфигурации."""

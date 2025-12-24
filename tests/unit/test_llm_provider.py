@@ -200,8 +200,7 @@ class TestMockChatModel:
     @pytest.mark.asyncio
     async def test_mock_ainvoke(self) -> None:
         """Mock модель возвращает ответ."""
-        config = LLMConfig()
-        model = MockChatModel(config)
+        model = MockChatModel()  # SimpleChatModel не принимает аргументы
 
         response = await model.ainvoke([{"role": "user", "content": "Hi"}])
 
@@ -211,8 +210,7 @@ class TestMockChatModel:
     @pytest.mark.asyncio
     async def test_mock_astream(self) -> None:
         """Mock модель стримит токены."""
-        config = LLMConfig()
-        model = MockChatModel(config)
+        model = MockChatModel()  # SimpleChatModel не принимает аргументы
 
         chunks = []
         async for chunk in model.astream([{"role": "user", "content": "Hi"}]):

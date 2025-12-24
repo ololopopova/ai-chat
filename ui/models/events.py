@@ -26,19 +26,39 @@ class ChatMessage(BaseModel):
 
 
 class StageName(str, Enum):
-    """Названия стадий обработки запроса."""
+    """
+    Названия стадий обработки запроса (ReAct архитектура).
 
-    ROUTER = "router"
-    CLARIFY = "clarify"
-    RETRIEVE = "retrieve"
-    GENERATE = "generate"
-    OFF_TOPIC = "off_topic"
-    TOOL_SELECT = "tool_select"
-    TOOL_EXECUTE = "tool_execute"
+    ReAct Main Agent проходит через следующие стадии:
+    - THINKING: Анализ запроса и планирование действий
+    - CALLING_TOOL: Вызов инструментов (субагентов)
+    - SYNTHESIZING: Синтез финального ответа
+    - COMPLETE: Завершение обработки
+    """
+
+    THINKING = "thinking"
+    CALLING_TOOL = "calling_tool"
+    SYNTHESIZING = "synthesizing"
+    COMPLETE = "complete"
+
+    # Legacy stages (deprecated, оставлены для обратной совместимости)
+    ROUTER = "router"  # Mapped to THINKING
+    GENERATE = "generate"  # Mapped to SYNTHESIZING
+    RETRIEVE = "retrieve"  # Mapped to CALLING_TOOL
+    CLARIFY = "clarify"  # Deprecated
+    OFF_TOPIC = "off_topic"  # Handled in THINKING
+    TOOL_SELECT = "tool_select"  # Deprecated (ReAct решает сам)
+    TOOL_EXECUTE = "tool_execute"  # Mapped to CALLING_TOOL
 
 
 # Русские названия стадий для отображения
 STAGE_LABELS: dict[StageName, str] = {
+    # ReAct стадии
+    StageName.THINKING: "Анализ запроса",
+    StageName.CALLING_TOOL: "Вызов специалиста",
+    StageName.SYNTHESIZING: "Формирование ответа",
+    StageName.COMPLETE: "Готово",
+    # Legacy (для обратной совместимости)
     StageName.ROUTER: "Определение темы",
     StageName.CLARIFY: "Уточнение вопроса",
     StageName.RETRIEVE: "Поиск информации",

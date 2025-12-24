@@ -44,24 +44,26 @@ class EchoMessageHandler(MessageHandler):
     """
     Временный обработчик сообщений в режиме echo.
 
-    Имитирует работу LLM + RAG системы для демонстрации
+    Имитирует работу ReAct Main Agent для демонстрации
     стриминга событий. Будет заменён на реальную интеграцию
-    в Phase 4-5.
+    с ReAct агентом.
     """
 
     # Тестовые ответы для демонстрации
     ECHO_RESPONSES: ClassVar[list[str]] = [
         "Спасибо за ваше сообщение! Это демонстрационный режим echo. "
-        "В будущих версиях здесь будет интеграция с LLM и RAG системой.",
+        "В будущих версиях здесь будет интеграция с ReAct Main Agent.",
         "Ваш запрос получен. Сейчас система работает в режиме эхо-ответов. "
         "Полноценная обработка будет добавлена позже.",
         "Привет! Я пока работаю в тестовом режиме и могу только "
-        "демонстрировать поток событий. Скоро здесь появится настоящий ИИ!",
+        "демонстрировать поток событий. Скоро здесь появится настоящий ReAct агент!",
     ]
 
     async def process_message(self, message: str, thread_id: str) -> AsyncIterator[StreamEvent]:
         """
         Обработать сообщение и сгенерировать поток событий.
+
+        Имитирует ReAct цикл: думай → действуй → синтезируй.
 
         Args:
             message: Текст сообщения пользователя
@@ -84,18 +86,27 @@ class EchoMessageHandler(MessageHandler):
             extra={"thread_id": thread_id[:8], "message_length": len(message)},
         )
 
-        # Stage: Router
+        # Stage: Thinking (анализ запроса)
         yield StageEvent(
             type=EventType.STAGE,
-            stage_name=StageName.ROUTER,
+            stage_name=StageName.THINKING,
             message="Анализирую запрос...",
         )
         await asyncio.sleep(0.3)
 
-        # Stage: Generate
+        # Stage: Calling Tool (имитация вызова субагента)
+        if "БАД" in message or "биохакинг" in message or "добавк" in message:
+            yield StageEvent(
+                type=EventType.STAGE,
+                stage_name=StageName.CALLING_TOOL,
+                message="Консультируюсь со специалистом...",
+            )
+            await asyncio.sleep(0.4)
+
+        # Stage: Synthesizing (формирование ответа)
         yield StageEvent(
             type=EventType.STAGE,
-            stage_name=StageName.GENERATE,
+            stage_name=StageName.SYNTHESIZING,
             message="Формирую ответ...",
         )
         await asyncio.sleep(0.2)

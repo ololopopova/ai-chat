@@ -1,23 +1,16 @@
-"""LangGraph оркестрация для чата."""
+"""LangGraph оркестрация для ReAct Main Agent."""
 
 from src.graph.builder import build_chat_graph
-from src.graph.prompts import GENERATE_PROMPT, ROUTER_PROMPT
-from src.graph.state import ChatState, Route
-from src.graph.templates import (
-    CLARIFY_MESSAGE,
-    ERROR_GENERATION_FAILED,
-    ERROR_NO_MESSAGE,
-    OFF_TOPIC_MESSAGE,
-)
+from src.graph.prompts import MAIN_AGENT_SYSTEM_PROMPT
+from src.graph.state import ChatState, Stage
+from src.graph.tools import compatibility_agent, marketing_agent, products_agent
 
 __all__ = [
-    "CLARIFY_MESSAGE",
-    "ERROR_GENERATION_FAILED",
-    "ERROR_NO_MESSAGE",
-    "GENERATE_PROMPT",
-    "OFF_TOPIC_MESSAGE",
-    "ROUTER_PROMPT",
+    "MAIN_AGENT_SYSTEM_PROMPT",
     "ChatState",
-    "Route",
+    "Stage",
     "build_chat_graph",
+    "compatibility_agent",
+    "marketing_agent",
+    "products_agent",
 ]

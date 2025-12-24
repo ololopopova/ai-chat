@@ -22,7 +22,13 @@ services:
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
+      # Логи (всегда)
       - ../logs:/app/logs
+      # Hot-reload для разработки (монтируем исходники)
+      - ../src:/app/src
+      - ../config:/app/config
+      - ../scripts:/app/scripts
+      # НЕ монтируем alembic и requirements — они должны быть в образе
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,6 +57,11 @@ services:
       USE_MOCK_API: "false"
     ports:
       - "${UI_PORT:-8501}:8501"
+    volumes:
+      # Hot-reload для разработки (монтируем исходники)
+      - ../ui:/app/ui
+      - ../src:/app/src
+      - ../config:/app/config
     depends_on:
       - api
     networks:
