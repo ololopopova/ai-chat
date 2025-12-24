@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any, cast
 
 from langchain.chat_models import init_chat_model
+from langchain_core.language_models import SimpleChatModel
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -26,65 +26,33 @@ from src.llm.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     from langchain_core.language_models import BaseChatModel
 
 logger = get_logger(__name__)
 
 
-class MockAIMessage:
-    """Mock сообщение AI."""
-
-    def __init__(self, content: str) -> None:
-        self.content = content
-        self.type = "ai"
-
-
-class MockAIMessageChunk:
-    """Mock чанк сообщения AI для стриминга."""
-
-    def __init__(self, content: str) -> None:
-        self.content = content
-        self.type = "AIMessageChunk"
-
-
-class MockChatModel:
+class MockChatModel(SimpleChatModel):
     """
     Mock LLM для тестирования без реального API.
 
-    Используется когда нет API ключа или в тестах.
+    Использует SimpleChatModel из langchain для совместимости с ReAct agent.
     """
 
-    def __init__(self, config: LLMConfig) -> None:
-        self.config = config
-        self._response_template = (
-            "Это mock-ответ. Для полноценной работы установите API ключ в переменную окружения."
-        )
+    @property
+    def _llm_type(self) -> str:
+        """Тип LLM для логирования."""
+        return "mock"
 
-    async def ainvoke(
+    def _call(
         self,
         messages: list[Any],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
         **kwargs: Any,
-    ) -> MockAIMessage:
-        """Имитация асинхронного вызова модели."""
-        # messages и kwargs используются для совместимости с интерфейсом
-        _ = messages, kwargs
-        await asyncio.sleep(0.1)  # Имитация задержки
-        return MockAIMessage(content=self._response_template)
-
-    async def astream(
-        self,
-        messages: list[Any],
-        **kwargs: Any,
-    ) -> AsyncIterator[MockAIMessageChunk]:
-        """Имитация стриминга токенов."""
-        # messages и kwargs используются для совместимости с интерфейсом
-        _ = messages, kwargs
-        words = self._response_template.split()
-        for word in words:
-            await asyncio.sleep(0.05)
-            yield MockAIMessageChunk(content=word + " ")
+    ) -> str:
+        """Синхронная генерация."""
+        _ = messages, stop, run_manager, kwargs
+        return "Это mock-ответ. Для полноценной работы установите API ключ в переменную окружения."
 
 
 class LLMProvider:
@@ -131,7 +99,7 @@ class LLMProvider:
                 "No API key found, using mock LLM",
                 extra={"provider": self._config.provider},
             )
-            return MockChatModel(self._config)
+            return MockChatModel()  # SimpleChatModel не требует config
 
         try:
             # Получаем параметры в зависимости от версии модели
