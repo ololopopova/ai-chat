@@ -34,3 +34,10 @@ tenacity>=9.0.0
 
 # Utils
 pyyaml>=6.0.0
+
+# OpenAI SDK (для embeddings и direct API calls)
+openai>=1.54.0
+
+# Ingest Service (HTML parsing)
+beautifulsoup4>=4.12.0
+lxml>=5.0.0

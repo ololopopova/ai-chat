@@ -47,7 +47,32 @@ def load_domains_yaml(config_path: Path) -> list[dict[str, Any]]:
     with config_path.open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
+    # Поддержка двух форматов: "domains" (старый) и "agents" (новый)
     domains: list[dict[str, Any]] = config.get("domains", [])
+
+    # Если нет "domains", попробовать "agents" (для config/domains.yaml с агентами)
+    if not domains:
+        agents: list[dict[str, Any]] = config.get("agents", [])
+        # Конвертировать агентов в домены
+        for agent in agents:
+            # Извлечь первый google_doc_url из списка, если есть
+            google_docs = agent.get("google_docs", [])
+            google_doc_url = google_docs[0] if google_docs else ""
+
+            # Пропустить агентов без документов
+            if not google_doc_url:
+                continue
+
+            domains.append(
+                {
+                    "id": agent.get("id"),
+                    "name": agent.get("name"),
+                    "description": agent.get("description"),
+                    "google_doc_url": google_doc_url,
+                    "enabled": agent.get("enabled", True),
+                }
+            )
+
     logger.info(f"Loaded {len(domains)} domains from {config_path}")
 
     return domains
