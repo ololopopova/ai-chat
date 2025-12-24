@@ -43,6 +43,15 @@ class MockChatModel(SimpleChatModel):
         """Тип LLM для логирования."""
         return "mock"
 
+    def bind_tools(self, tools: Any, **kwargs: Any) -> Any:
+        """
+        Привязка tools для совместимости с ReAct agent.
+
+        Mock не использует реальные tools, просто возвращаем self.
+        """
+        _ = tools, kwargs
+        return self
+
     def _call(
         self,
         messages: list[Any],
