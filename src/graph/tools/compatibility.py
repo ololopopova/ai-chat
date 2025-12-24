@@ -63,4 +63,3 @@ async def compatibility_agent(query: str) -> str:
 
     logger.info("Compatibility agent completed")
     return stub_response
-

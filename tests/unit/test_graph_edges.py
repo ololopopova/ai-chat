@@ -67,9 +67,7 @@ class TestReActBehaviour:
         graph = build_chat_graph()
 
         input_state = {
-            "messages": [
-                HumanMessage(content="Что принимать для сна и с чем это сочетается?")
-            ],
+            "messages": [HumanMessage(content="Что принимать для сна и с чем это сочетается?")],
         }
 
         # TODO: добавить мок LLM

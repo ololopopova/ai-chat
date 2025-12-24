@@ -56,4 +56,3 @@ async def products_agent(query: str) -> str:
 
     logger.info("Products agent completed")
     return stub_response
-

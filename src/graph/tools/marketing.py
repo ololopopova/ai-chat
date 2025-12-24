@@ -55,4 +55,3 @@ async def marketing_agent(query: str) -> str:
 
     logger.info("Marketing agent completed")
     return stub_response
-
