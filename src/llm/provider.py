@@ -99,7 +99,7 @@ class LLMProvider:
                 "No API key found, using mock LLM",
                 extra={"provider": self._config.provider},
             )
-            return MockChatModel()  # SimpleChatModel не требует config
+            return MockChatModel()  # SimpleChatModel не принимает аргументы
 
         try:
             # Получаем параметры в зависимости от версии модели
@@ -153,7 +153,7 @@ class LLMProvider:
                 "Failed to initialize LLM, falling back to mock",
                 extra={"error": str(e), "model": self._config.model},
             )
-            return MockChatModel(self._config)
+            return MockChatModel()  # SimpleChatModel не принимает аргументы
 
     async def ainvoke_with_retry(
         self,
