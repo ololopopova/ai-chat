@@ -44,8 +44,9 @@ ignore = [
 [lint.per-file-ignores]
 # Scripts and alembic need to manipulate sys.path before imports
 "scripts/*.py" = ["E402"]
+"alembic/*.py" = ["E402"]
 "alembic/env.py" = ["E402"]
-"ui/app.py" = ["E402"]
+"ui/*.py" = ["E402"]
 "ui/**/*.py" = ["E402"]
 
 [lint.isort]
