@@ -75,7 +75,7 @@ def clear_domains_cache() -> None:
 # ==========================================
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_db_session() -> AsyncGenerator[AsyncSession]:
     """
     Dependency для получения async database session.
 
@@ -165,7 +165,7 @@ async def get_job_repository(
     return JobRepository(session)
 
 
-async def get_unit_of_work() -> AsyncGenerator["UnitOfWork", None]:
+async def get_unit_of_work() -> AsyncGenerator["UnitOfWork"]:
     """
     Dependency для получения UnitOfWork.
 

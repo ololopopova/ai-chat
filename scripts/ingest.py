@@ -15,10 +15,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.core.logging import get_logger  # noqa: E402
-from src.db.session import get_session_factory  # noqa: E402
-from src.repositories.unit_of_work import UnitOfWork  # noqa: E402
-from src.services.ingest import IngestService  # noqa: E402
+from src.core.logging import get_logger
+from src.db.session import get_session_factory
+from src.repositories.unit_of_work import UnitOfWork
+from src.services.ingest import IngestService
 
 logger = get_logger(__name__)
 

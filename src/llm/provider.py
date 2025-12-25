@@ -114,26 +114,33 @@ class LLMProvider:
             # Получаем параметры в зависимости от версии модели
             model_params = self._config.get_model_params()
 
+            # Создаём базовые параметры для init_chat_model
+            init_params: dict[str, Any] = {
+                "model": self._config.model,
+                "timeout": self._config.timeout,
+                "max_retries": 0,  # Управляем retry на уровне провайдера
+            }
+
+            # Для GPT-5.x параметры идут через model_kwargs
+            if self._config.is_gpt5:
+                init_params["model_kwargs"] = model_params
+            else:
+                # Для старых моделей (GPT-4, etc) — напрямую
+                init_params.update(model_params)
+
             model: BaseChatModel = cast(
                 "BaseChatModel",
-                init_chat_model(
-                    model=self._config.model,
-                    timeout=self._config.timeout,
-                    max_retries=0,  # Управляем retry на уровне провайдера
-                    **model_params,
-                ),
+                init_chat_model(**init_params),
             )
 
             # Добавляем fallback если указан
             if self._config.fallback_model:
+                fallback_params = init_params.copy()
+                fallback_params["model"] = self._config.fallback_model
+
                 fallback = cast(
                     "BaseChatModel",
-                    init_chat_model(
-                        model=self._config.fallback_model,
-                        timeout=self._config.timeout,
-                        max_retries=0,
-                        **model_params,
-                    ),
+                    init_chat_model(**fallback_params),
                 )
                 # with_fallbacks возвращает RunnableWithFallbacks, совместим с BaseChatModel
                 model_with_fallback = cast("BaseChatModel", model.with_fallbacks([fallback]))

@@ -29,7 +29,7 @@ def app(test_settings: Settings) -> FastAPI:
 
 
 @pytest.fixture
-async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """Создать async HTTP клиент для тестов."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -37,7 +37,7 @@ async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture(autouse=True)
-def cleanup() -> Generator[None, None, None]:
+def cleanup() -> Generator[None]:
     """Очистка кэша настроек после теста."""
     yield
     clear_settings_cache()

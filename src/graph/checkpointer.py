@@ -31,7 +31,7 @@ def _get_checkpointer_db_uri() -> str:
 
 
 @asynccontextmanager
-async def get_checkpointer() -> AsyncGenerator[AsyncPostgresSaver, None]:
+async def get_checkpointer() -> AsyncGenerator[AsyncPostgresSaver]:
     """
     Получить async checkpointer для LangGraph.
 

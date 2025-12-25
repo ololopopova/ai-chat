@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """
     Lifespan context manager для FastAPI приложения.
 
@@ -99,6 +99,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("ChatService initialized")
     except Exception:
         logger.exception("Failed to initialize ChatService")
+
+    # Предзагрузка Reranker модели (если включена в конфиге)
+    try:
+        from src.api.deps import load_domains_config
+
+        domains_config = load_domains_config()
+        use_reranker = domains_config.get("rag", {}).get("use_reranker", False)
+
+        if use_reranker:
+            logger.info("Preloading Reranker model...")
+            from mcp_servers.rag.tools import get_reranker
+
+            # Загружаем модель в память при старте
+            get_reranker()
+            logger.info("Reranker model preloaded and ready")
+        else:
+            logger.info("Reranker disabled in config, skipping preload")
+    except Exception:
+        logger.exception("Failed to preload Reranker model")
 
     yield
 

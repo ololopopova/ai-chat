@@ -69,6 +69,12 @@ main_agent:
 # =============================================================================
 
 subagents:
+  # LLM модель для субагентов (может быть другой моделью, чем Main Agent)
+  llm_model: "openai:gpt-5.2"
+  
+  # Окно истории диалога (количество последних сообщений)
+  history_window: 10
+  
   # Разрешить параллельные вызовы субагентов
   # (пока не поддерживается в create_react_agent, reserved для будущего)
   allow_parallel: false
@@ -78,21 +84,51 @@ subagents:
   
   # Таймаут на вызов одного субагента (секунды)
   timeout: 30
+  
+  # Настройки для Products Subagent
+  products:
+    domain: "products"
+    rag_min_score: 0.3  # Понижен для лучшего recall
+    enabled: true
+
+  # Настройки для Compatibility Subagent
+  compatibility:
+    domain: "compatibility"
+    rag_min_score: 0.3  # Понижен (было 0.6, слишком строго)
+    enabled: true
+    
+  # Настройки для Marketing Subagent
+  marketing:
+    enabled: false  # Заглушка, будет включено в Phase 8
+    # Будущие настройки:
+    # mcp_tools:
+    #   - banner_generator
+    #   - audience_analyzer
+    #   - content_strategy
 
 # =============================================================================
 # RAG НАСТРОЙКИ (для будущих фаз)
 # =============================================================================
 
 rag:
-  # Количество чанков для retrieval
-  top_k: 5
-  
-  # Минимальный score для включения чанка
-  min_relevance_score: 0.7
-  
   # Hybrid search: веса для dense/sparse
+  # dense_weight - вес векторного поиска (семантика, смысл)
+  # sparse_weight - вес полнотекстового поиска (ключевые слова)
   dense_weight: 0.7
   sparse_weight: 0.3
+  
+  # Multi-query search параметры
+  # top_k_per_query - сколько результатов брать на каждый подзапрос
+  # final_top_k - итоговое количество после merge всех подзапросов
+  top_k_per_query: 5
+  final_top_k: 15
+  
+  # Reranker (Cross-Encoder для улучшения качества результатов)
+  # use_reranker - включить/выключить reranking (если false, модель не загружается)
+  use_reranker: true
+  
+  # NOTE: min_score фильтр настраивается индивидуально для каждого субагента
+  # в секции subagents (см. rag_min_score)
 
 # =============================================================================
 # OFF-TOPIC HANDLING

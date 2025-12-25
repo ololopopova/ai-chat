@@ -26,6 +26,7 @@ services:
       - ../logs:/app/logs
       # Hot-reload для разработки (монтируем исходники)
       - ../src:/app/src
+      - ../mcp_servers:/app/mcp_servers
       - ../config:/app/config
       - ../scripts:/app/scripts
       # НЕ монтируем alembic и requirements — они должны быть в образе
@@ -111,6 +112,26 @@ services:
       start_period: 5s
     networks:
       - ai_chat_network
+
+  # ===========================================
+  # Dozzle - Docker Logs Viewer
+  # ===========================================
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: ai_chat_dozzle
+    restart: unless-stopped
+    ports:
+      - "${DOZZLE_PORT:-9999}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: "name=ai_chat_"  # Показывать только наши контейнеры
+    networks:
+      - ai_chat_network
+    profiles:
+      - debug  # Запускается только с --profile debug
 
   # Опциональный Adminer для отладки БД (закомментировать в production)
   adminer:

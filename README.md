@@ -1,20 +1,23 @@
 # 🤖 AI Chat — Умный чат-ассистент
 
-Демонстрационный проект умного чат-приложения с **ReAct Multi-Agent Architecture**, RAG и инструментами через MCP.
+Демонстрационный (портфолио) проект умного чат-приложения с **ReAct Multi-Agent Architecture**, **RAG Subagents** через MCP и расширяемой экосистемой инструментов.
 
 **Ключевые особенности:**
-- 🧠 ReAct Main Agent с автономным принятием решений
-- 🛠️ 3 специализированных субагента (products, compatibility, marketing)
-- 🔄 Hot-reload для мгновенного применения изменений кода
-- 📊 Стриминг событий в реальном времени
-- 🗄️ PostgreSQL + pgvector для RAG
-- 🐳 Полная dockerization с поддержкой разработки
+- 🧠 **ReAct Main Agent** с автономным принятием решений
+- 🤖 **3 специализированных RAG субагента** (products, compatibility, marketing)
+- 🔍 **Hybrid Search** (Vector + FTS) с Cross-Encoder Reranker
+- 🔧 **MCP Protocol** для расширяемых инструментов
+- 📊 **Стриминг событий** в реальном времени
+- 🔄 **Hot-reload** для мгновенного применения изменений кода
+- 🗄️ **PostgreSQL + pgvector** для RAG
+- 🐳 **Полная dockerization** с поддержкой разработки
 
 ## 🚀 Быстрый старт
 
 ### Требования
 
 - Docker & Docker Compose
+- (Опционально) OpenAI API ключ для реальных ответов
 
 ### Запуск (3 команды)
 
@@ -32,14 +35,22 @@ docker compose -f docker/docker-compose.yml --profile app up -d --build
 **Готово!**
 - **UI:** http://localhost:8501
 - **API Docs:** http://localhost:8000/docs
+- **Adminer (DB UI):** http://localhost:8080
+- **Dozzle (Logs UI):** http://localhost:9999
 
 > **Без API ключа** система работает в mock-режиме — можно тестировать интерфейс.
 
-### Применить миграции (первый запуск)
+### Применить миграции и загрузить данные (первый запуск)
 
 ```bash
+# Миграции БД
 docker exec ai_chat_api alembic upgrade head
+
+# Загрузить тестовые домены
 docker exec ai_chat_api python scripts/seed_domains.py
+
+# Индексация базы знаний (если есть Google Docs)
+# docker exec ai_chat_api python scripts/ingest.py
 ```
 
 ### 🔄 Hot-Reload для разработки
@@ -48,6 +59,7 @@ docker exec ai_chat_api python scripts/seed_domains.py
 
 ✅ **Не требует перезапуска:**
 - Любые изменения в `src/**/*.py` (Python код)
+- Любые изменения в `mcp_servers/**/*.py` (MCP серверы)
 - Любые изменения в `ui/**/*.py` (Streamlit UI)
 - Изменения в `config/*.yaml` (конфигурация)
 
@@ -56,8 +68,31 @@ docker exec ai_chat_api python scripts/seed_domains.py
 - Добавление новых миграций Alembic
 
 ```bash
-# Только для изменений в requirements.txt
-docker compose -f docker/docker-compose.yml --profile app up -d --build
+# Для rebuild после изменений в requirements.txt
+docker compose -f docker/docker-compose.yml build --no-cache api
+docker compose -f docker/docker-compose.yml up -d
+```
+
+### 🐛 Просмотр логов
+
+**Dozzle (Web UI):**
+```bash
+# Запустить Dozzle (если не запущен)
+docker compose -f docker/docker-compose.yml --profile debug up -d
+
+# Открыть http://localhost:9999
+```
+
+**Терминал:**
+```bash
+# Все сервисы
+docker compose -f docker/docker-compose.yml logs -f
+
+# Только API
+docker compose -f docker/docker-compose.yml logs -f api
+
+# Только UI
+docker compose -f docker/docker-compose.yml logs -f ui
 ```
 
 ---
@@ -73,10 +108,11 @@ python -m venv venv
 source venv/bin/activate
 
 # 2. Установить зависимости
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
-# 3. Запустить только БД
-docker compose -f docker/docker-compose.yml up -d
+# 3. Запустить только БД и Redis
+docker compose -f docker/docker-compose.yml up -d postgres redis
 
 # 4. Миграции
 alembic upgrade head
@@ -94,90 +130,110 @@ streamlit run ui/app.py
 
 ```
 ai-chat/
-├── alembic/                    # Database migrations
-│   ├── versions/               # Migration scripts
-│   └── env.py                  # Alembic configuration
+├── alembic/                       # Database migrations
+│   ├── versions/                  # Migration scripts
+│   └── env.py                     # Alembic configuration
 │
-├── config/                     # Конфигурационные файлы
-│   ├── domains.yaml            # Конфигурация агентов (не доменов!)
-│   └── llm.yaml                # Конфигурация LLM моделей
+├── config/                        # Конфигурационные файлы
+│   ├── domains.yaml               # Конфигурация субагентов и RAG
+│   └── llm.yaml                   # Конфигурация LLM моделей
 │
-├── docker/                     # Docker configuration
-│   ├── docker-compose.yml      # PostgreSQL, Redis, API, UI
-│   ├── Dockerfile.api          # API image
-│   ├── Dockerfile.ui           # UI image
-│   └── postgres/init.sql       # PostgreSQL extensions
+├── docker/                        # Docker infrastructure
+│   ├── docker-compose.yml         # PostgreSQL, Redis, API, UI, Adminer, Dozzle
+│   ├── Dockerfile.api             # API image (с предзагрузкой Reranker)
+│   ├── Dockerfile.ui              # UI image
+│   ├── env.docker.example         # Пример .env
+│   └── postgres/init.sql          # PostgreSQL extensions (pgvector, pg_trgm)
 │
-├── src/                        # Backend
-│   ├── core/                   # Ядро приложения
-│   │   ├── config.py           # Pydantic Settings
-│   │   ├── exceptions.py       # Базовые и Repository исключения
-│   │   └── logging.py          # Настройка логирования
+├── mcp_servers/                   # MCP Servers (расширяемые инструменты)
+│   └── rag/                       # RAG MCP Server
+│       ├── server.py              # FastMCP server
+│       ├── tools.py               # hybrid_search tool
+│       ├── search.py              # Multi-query hybrid search logic
+│       ├── reranker.py            # Cross-Encoder reranker
+│       └── schemas.py             # Pydantic schemas
+│
+├── src/                           # Backend
+│   ├── core/                      # Ядро приложения
+│   │   ├── config.py              # Pydantic Settings
+│   │   ├── exceptions.py          # Базовые и Repository исключения
+│   │   └── logging.py             # Structured JSON logging
 │   │
-│   ├── db/                     # Database Layer (Phase 3)
-│   │   ├── base.py             # Base ORM model + TimestampMixin
-│   │   ├── engine.py           # Async SQLAlchemy engine
-│   │   ├── session.py          # AsyncSession factory
-│   │   └── models/             # ORM models
-│   │       ├── domain.py       # Domain (knowledge areas)
-│   │       ├── chunk.py        # Chunk (RAG fragments)
-│   │       ├── conversation.py # Conversation (chat history)
-│   │       └── job.py          # Job (async tasks)
+│   ├── db/                        # Database Layer
+│   │   ├── base.py                # Base ORM model + TimestampMixin
+│   │   ├── engine.py              # Async SQLAlchemy engine
+│   │   ├── session.py             # AsyncSession factory
+│   │   └── models/                # ORM models
+│   │       ├── domain.py          # Domain (knowledge areas)
+│   │       ├── chunk.py           # Chunk (RAG fragments, FTS + Vector)
+│   │       ├── conversation.py    # Conversation (chat history)
+│   │       └── job.py             # Job (async tasks)
 │   │
-│   ├── repositories/           # Repository Pattern (Phase 3)
-│   │   ├── base.py             # Generic CRUD + batch operations
-│   │   ├── protocols.py        # Repository interfaces (DIP)
-│   │   ├── unit_of_work.py     # Unit of Work pattern
+│   ├── repositories/              # Repository Pattern (Data Access Layer)
+│   │   ├── base.py                # Generic CRUD + batch operations
+│   │   ├── protocols.py           # Repository interfaces (SOLID DIP)
+│   │   ├── unit_of_work.py        # Unit of Work pattern
 │   │   ├── domain_repository.py
-│   │   ├── chunk_repository.py # FTS + Vector search
+│   │   ├── chunk_repository.py    # Hybrid search (FTS + Vector)
 │   │   ├── conversation_repository.py
 │   │   └── job_repository.py
 │   │
-│   ├── graph/                  # LangGraph Orchestration (Phase 4)
-│   │   ├── state.py            # ChatState (ReAct минималистичное)
-│   │   ├── builder.py          # create_react_agent с tools
-│   │   ├── prompts.py          # MAIN_AGENT_SYSTEM_PROMPT
-│   │   ├── checkpointer.py     # PostgreSQL state persistence
-│   │   └── tools/              # Субагенты как @tool функции
-│   │       ├── products.py     # Products Agent (заглушка)
-│   │       ├── compatibility.py # Compatibility Agent (заглушка)
-│   │       └── marketing.py    # Marketing Agent (заглушка)
+│   ├── graph/                     # LangGraph Orchestration
+│   │   ├── state.py               # ChatState (messages + stage)
+│   │   ├── builder.py             # build_chat_graph (ReAct Main Agent)
+│   │   ├── checkpointer.py        # AsyncPostgresSaver wrapper
+│   │   ├── prompts/               # System prompts (модульная структура)
+│   │   │   ├── main_agent.py      # Main Agent prompt
+│   │   │   ├── products_subagent.py
+│   │   │   ├── compatibility_subagent.py
+│   │   │   └── marketing_subagent.py
+│   │   └── subagents/             # RAG Subagents (ReAct graphs)
+│   │       ├── base.py            # SubagentConfig, create_rag_subagent
+│   │       ├── products.py        # Products субагент (RAG + MCP tools)
+│   │       ├── compatibility.py   # Compatibility субагент (RAG + MCP tools)
+│   │       └── marketing.py       # Marketing субагент (placeholder)
 │   │
-│   ├── llm/                    # LLM Provider (Phase 4)
-│   │   ├── provider.py         # Unified LLM interface
-│   │   ├── config.py           # LLM configuration
-│   │   └── utils.py            # Response parsing
+│   ├── llm/                       # LLM Provider Abstraction
+│   │   ├── provider.py            # Unified LLM interface
+│   │   ├── config.py              # LLM configuration
+│   │   └── utils.py               # Response parsing
 │   │
-│   ├── services/               # Business Logic (Phase 4)
-│   │   └── chat_service.py     # ChatService со стримингом
+│   ├── services/                  # Business Logic Layer
+│   │   ├── chat_service.py        # ChatService со стримингом событий
+│   │   └── ingest/                # Индексация базы знаний
+│   │       ├── google_docs_loader.py
+│   │       ├── chunker.py
+│   │       └── embedding_service.py
 │   │
-│   └── api/                    # FastAPI backend
-│       ├── main.py             # App factory + lifespan
-│       ├── deps.py             # Dependency injection
-│       ├── middleware.py       # Request ID, Logging, Timing
-│       ├── routes/             # Endpoints
-│       │   ├── health.py       # /health (DB + Redis checks)
-│       │   ├── domains.py      # /api/v1/domains
-│       │   └── chat.py         # /ws/chat/{thread_id}
-│       ├── schemas/            # Pydantic schemas
-│       └── services/           # Business logic
+│   └── api/                       # FastAPI backend
+│       ├── main.py                # App factory + lifespan (с предзагрузкой Reranker)
+│       ├── deps.py                # Dependency injection
+│       ├── middleware.py          # Request ID, Logging, Timing
+│       ├── routes/                # Endpoints
+│       │   ├── health.py          # /health (DB + Redis checks)
+│       │   ├── domains.py         # /api/v1/domains
+│       │   └── chat.py            # /ws/chat/{thread_id}
+│       ├── schemas/               # Pydantic schemas
+│       └── services/              # API services
+│           └── connection_manager.py
 │
-├── ui/                         # Streamlit UI
-│   ├── app.py                  # Точка входа
-│   ├── session.py              # Менеджер сессии
-│   ├── api_client.py           # WebSocket API клиент
-│   ├── components/             # UI компоненты
-│   ├── models/                 # Pydantic модели событий
-│   └── mock/                   # Mock клиент
+├── ui/                            # Streamlit UI
+│   ├── app.py                     # Точка входа
+│   ├── session.py                 # Менеджер сессии
+│   ├── api_client.py              # WebSocket API клиент
+│   ├── components/                # UI компоненты
+│   ├── models/                    # Pydantic модели событий
+│   └── mock/                      # Mock клиент
 │
-├── scripts/                    # CLI скрипты
-│   ├── run_api.py              # Запуск FastAPI сервера
-│   ├── init_db.py              # Инициализация БД
-│   └── seed_domains.py         # Заполнение доменов
+├── scripts/                       # CLI скрипты
+│   ├── run_api.py                 # Запуск FastAPI сервера
+│   ├── init_db.py                 # Инициализация БД
+│   ├── seed_domains.py            # Заполнение доменов
+│   └── ingest.py                  # Индексация базы знаний
 │
-└── tests/                      # Тесты
-    ├── unit/                   # Unit тесты
-    └── integration/            # Integration тесты (DB, API)
+└── tests/                         # Тесты
+    ├── unit/                      # Unit тесты (graph, RAG, subagents)
+    └── integration/               # Integration тесты (DB, API, WebSocket)
 ```
 
 ## 🎯 Функциональность
@@ -198,9 +254,9 @@ ai-chat/
 - ✅ WebSocket endpoint `/ws/chat/{thread_id}`
 - ✅ REST endpoints: `/health`, `/api/v1/domains`
 - ✅ Стриминг событий в реальном времени
-- ✅ Echo-режим для демонстрации
 - ✅ Dependency Injection через `app.state`
 - ✅ Reconnect логика в клиенте
+- ✅ Structured JSON logging
 
 ### Phase 3: Database Layer + Persistence ✅
 
@@ -213,27 +269,55 @@ ai-chat/
 - ✅ Protocol interfaces (SOLID DIP)
 - ✅ FTS + Vector search для RAG
 - ✅ Health checks с реальной проверкой зависимостей
-- ✅ 100+ тестов (unit + integration)
 
 ### Phase 4: ReAct Multi-Agent Architecture ✅
 
 - ✅ **ReAct Main Agent** с автономным принятием решений
 - ✅ **3 субагента как @tool функции:**
-  - `products_agent` — БАДы, биохакинг, рецепты (заглушка)
-  - `compatibility_agent` — сочетаемость продуктов (заглушка)
-  - `marketing_agent` — генерация баннеров, анализ ЦА (заглушка)
+  - `products_agent` — БАДы, биохакинг, рецепты
+  - `compatibility_agent` — сочетаемость продуктов
+  - `marketing_agent` — генерация баннеров, анализ ЦА (placeholder)
 - ✅ LLM Provider с поддержкой GPT-5.2 (reasoning_effort, output_verbosity)
 - ✅ Конфигурация моделей через YAML (`config/llm.yaml`)
 - ✅ Fallback модель (gpt-5.2 → gpt-5-mini)
-- ✅ `create_react_agent` из LangGraph (вместо ручного графа)
+- ✅ `create_react_agent` из LangGraph
 - ✅ Минималистичный ChatState (messages + stage)
-- ✅ MAIN_AGENT_SYSTEM_PROMPT с правилами работы
+- ✅ Модульные system prompts (`src/graph/prompts/`)
 - ✅ AsyncPostgresSaver для персистентности состояния
-- ✅ ChatService со стримингом событий (StageEvent, TokenEvent, ToolEvent)
+- ✅ ChatService со стримингом событий
 - ✅ Mock режим при отсутствии API ключа
-- ✅ Автоматические retry с exponential backoff (1s → 2s → 4s)
+- ✅ Автоматические retry с exponential backoff
 - ✅ Hot-reload для мгновенного применения изменений
-- ✅ 120+ тестов (unit + integration)
+
+### Phase 5: RAG (Hybrid Retrieval) ✅
+
+- ✅ Google Docs loader через публичные ссылки
+- ✅ Semantic chunking (SmartChunker)
+- ✅ OpenAI Embeddings (text-embedding-3-large)
+- ✅ PostgreSQL Full-Text Search (tsvector, ts_rank)
+- ✅ pgvector Vector Search (cosine similarity)
+- ✅ Hybrid search (dense + sparse merge)
+- ✅ Индексация через CLI скрипт (`scripts/ingest.py`)
+
+### Phase 6: Subagents with RAG (Subgraph Architecture) ✅ **(текущая)**
+
+- ✅ **RAG MCP Server** с `hybrid_search` tool
+  - Multi-query parallel search (vector + FTS)
+  - Deduplication (max score per chunk)
+  - Cross-Encoder Reranker (ms-marco-MiniLM-L-12-v2)
+  - Фильтрация по `min_score`
+- ✅ **Products Subagent** (ReAct граф + RAG MCP tools)
+  - Доступ к истории через `InjectedState`
+  - Собственный LLM для query planning
+  - Генерация `vector_queries` и `fts_keywords`
+- ✅ **Compatibility Subagent** (ReAct граф + RAG MCP tools)
+- ✅ **Marketing Subagent** (placeholder)
+- ✅ **Production-Ready Reranker:**
+  - Модель кэшируется в Docker образ (~50MB)
+  - Предзагружается при старте API (если `use_reranker=true`)
+  - Singleton для переиспользования (не загружается при каждом запросе)
+- ✅ Конфигурация через `config/domains.yaml` (субагенты, RAG параметры)
+- ✅ Unit + Integration тесты
 
 ## 🌐 API Endpoints
 
@@ -277,15 +361,15 @@ ai-chat/
 
 ## 🧪 Тестирование
 
-### Простые вопросы для ReAct агента
+### Примеры вопросов для ReAct агента
 
 Попробуйте спросить:
 
 | Вопрос | Какой субагент вызовется |
 |--------|--------------------------|
-| "Что принимать для сна?" | `products_agent` |
+| "Что принимать для сна?" | `products_agent` (с RAG поиском) |
 | "Какой БАД для сна и с чем его сочетать?" | `products_agent` + `compatibility_agent` |
-| "Сделай баннер для акции на мелатонин" | `marketing_agent` |
+| "Совместимость магния и кальция" | `compatibility_agent` |
 | "Какая погода завтра?" | Off-topic (агент вежливо откажет) |
 
 ### Mock сценарии (без API ключа)
@@ -355,14 +439,22 @@ docker compose -f docker/docker-compose.yml up -d
 # Запустить полный стек (+ API + UI)
 docker compose -f docker/docker-compose.yml --profile app up -d
 
+# Запустить с debug tools (+ Dozzle для логов)
+docker compose -f docker/docker-compose.yml --profile app --profile debug up -d
+
 # Остановить
 docker compose -f docker/docker-compose.yml down
 
 # Удалить с данными
 docker compose -f docker/docker-compose.yml down -v
 
-# Пересобрать образы
-docker compose -f docker/docker-compose.yml --profile app up -d --build
+# Пересобрать образы (после изменений в requirements.txt или Dockerfile)
+docker compose -f docker/docker-compose.yml build --no-cache api
+docker compose -f docker/docker-compose.yml up -d
+
+# Очистить __pycache__ (если hot-reload не работает)
+find . -type d -name "__pycache__" -exec rm -rf {} +
+docker compose -f docker/docker-compose.yml restart api ui
 ```
 
 ## 📋 Конфигурация
@@ -394,13 +486,35 @@ infrastructure:
   retry_delays: [1.0, 2.0, 4.0]
 ```
 
+### RAG конфигурация (`config/domains.yaml`)
+
+```yaml
+subagents:
+  llm_model: "openai:gpt-5-mini"  # Модель для субагентов
+  history_window: 6               # История диалога (последние N сообщений)
+
+  products:
+    domain: "products"            # Домен для RAG поиска
+    rag_min_score: 0.3            # Минимальный порог релевантности
+
+  compatibility:
+    domain: "compatibility"
+    rag_min_score: 0.3
+
+rag:
+  dense_weight: 0.7               # Вес векторного поиска
+  sparse_weight: 0.3              # Вес полнотекстового поиска
+  top_k_per_query: 5              # Результатов на подзапрос
+  final_top_k: 15                 # Итоговое количество
+  use_reranker: true              # Включить Cross-Encoder reranking
+```
+
 ### Переменные окружения (`.env`)
 
 | Переменная | Описание | По умолчанию |
 |------------|----------|--------------|
 | **Secrets (API Keys)** | | |
 | `OPENAI_API_KEY` | OpenAI API key | - |
-| `ANTHROPIC_API_KEY` | Anthropic API key (optional) | - |
 | **App** | | |
 | `APP_ENV` | Окружение (development/staging/production) | development |
 | `APP_DEBUG` | Режим отладки | false |
@@ -414,20 +528,19 @@ infrastructure:
 | `DATABASE_ECHO` | SQL логирование | false |
 | **Redis** | | |
 | `REDIS_URL` | Redis connection string | redis://localhost:6379/0 |
-| **API URLs** | | |
-| `API_BASE_URL` | URL backend API | http://localhost:8000 |
-| `API_WS_URL` | URL WebSocket | ws://localhost:8000 |
 | **WebSocket** | | |
 | `WS_HEARTBEAT_INTERVAL` | Интервал ping (сек) | 30 |
 | `WS_CONNECTION_TIMEOUT` | Таймаут соединения (сек) | 300 |
 | **UI** | | |
 | `UI_TITLE` | Заголовок страницы | AI Ассистент |
-| `USE_MOCK_API` | Использовать mock API | true |
+| `USE_MOCK_API` | Использовать mock API | false |
+| **Debug Tools** | | |
+| `DOZZLE_PORT` | Порт Dozzle (logs UI) | 9999 |
 
 ## 📦 Стек технологий
 
 ### Backend
-- **Python** 3.12+
+- **Python** 3.13
 - **FastAPI** — Backend API + WebSocket
 - **Uvicorn** — ASGI сервер
 - **SQLAlchemy** 2.0 — Async ORM
@@ -436,10 +549,17 @@ infrastructure:
 - **Pydantic** — валидация данных
 - **redis-py** — Redis async client
 
+### AI/ML
+- **LangChain** — LLM abstractions
+- **LangGraph** — Agent orchestration
+- **OpenAI** — GPT models
+- **sentence-transformers** — Cross-Encoder reranker
+- **MCP (Model Context Protocol)** — расширяемые инструменты
+
 ### Database
 - **PostgreSQL** 16 — основная БД
-- **pgvector** — векторный поиск
-- **pg_trgm** — fuzzy text search
+- **pgvector** — векторный поиск (cosine similarity)
+- **pg_trgm** — Full-Text Search (FTS) с морфологией
 - **Redis** 7 — кэш и очереди
 
 ### Frontend
@@ -449,31 +569,75 @@ infrastructure:
 
 ### DevOps
 - **Docker** + **Docker Compose**
+- **Dozzle** — Web UI для логов
+- **Adminer** — Web UI для PostgreSQL
 - **ruff** — линтинг и форматирование
 - **mypy** — проверка типов
 - **pytest** — тестирование
 
 ## 🏗 Архитектура
 
-### ReAct Multi-Agent Flow
+### ReAct Multi-Agent Flow с RAG
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   MAIN AGENT (ReAct)                    │
-│                                                         │
-│  1. Думает: "Вопрос про БАДы и сочетаемость"          │
-│  2. Действует:                                         │
-│     → products_agent("Что для сна?")                   │
-│     → compatibility_agent("Сочетаемость мелатонина")   │
-│  3. Наблюдает: получает результаты                     │
-│  4. Синтезирует: формирует единый ответ               │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                   MAIN AGENT (ReAct)                        │
+│                                                             │
+│  1. Думает: "Вопрос про БАДы и сочетаемость"              │
+│  2. Действует:                                             │
+│     → products_agent("Что для сна?")                       │
+│     → compatibility_agent("Сочетаемость мелатонина")       │
+│  3. Наблюдает: получает результаты от субагентов           │
+│  4. Синтезирует: формирует единый ответ                    │
+└─────────────────────────────────────────────────────────────┘
                ↓              ↓              ↓
         ┌──────────┐   ┌──────────┐   ┌──────────┐
         │ Products │   │Compat.   │   │Marketing │
-        │  Agent   │   │  Agent   │   │  Agent   │
-        │ (stub)   │   │ (stub)   │   │ (stub)   │
-        └──────────┘   └──────────┘   └──────────┘
+        │ Subagent │   │ Subagent │   │ Subagent │
+        │ (ReAct)  │   │ (ReAct)  │   │(placeholder)
+        └─────┬────┘   └─────┬────┘   └──────────┘
+              │              │
+              ↓              ↓
+        ┌──────────────────────────┐
+        │   RAG MCP Server         │
+        │  - hybrid_search tool    │
+        │  - Multi-query           │
+        │  - Deduplication         │
+        │  - Cross-Encoder Reranker│
+        └─────────┬────────────────┘
+                  ↓
+        ┌──────────────────────────┐
+        │  PostgreSQL + pgvector   │
+        │  - Full-Text Search      │
+        │  - Vector Search         │
+        │  - Hybrid Merge          │
+        └──────────────────────────┘
+```
+
+### RAG Hybrid Search Pipeline
+
+```
+User Query → Subagent LLM (Query Planning)
+                    ↓
+          ┌─────────────────────┐
+          │ vector_queries (3)  │ → Semantic search
+          │ fts_keywords (7)    │ → Keyword search
+          └─────────────────────┘
+                    ↓
+            Parallel Search (10 queries)
+                    ↓
+          ┌─────────────────────┐
+          │ Vector: 15 chunks   │
+          │ FTS:    35 chunks   │
+          └─────────────────────┘
+                    ↓
+          Deduplication (max score)
+                    ↓
+          Cross-Encoder Reranker
+                    ↓
+          Filter by min_score (0.3)
+                    ↓
+          Top-15 chunks → Context
 ```
 
 ### Инфраструктура
@@ -487,8 +651,8 @@ infrastructure:
                     ┌───────────────────┼───────────────────┐
                     │                   │                   │
               ┌─────▼─────┐      ┌──────▼──────┐     ┌──────▼──────┐
-              │Repository │      │  LangGraph  │     │    Tools    │
-              │  Layer    │      │ ReAct Agent │     │  (MCP)      │
+              │Repository │      │  LangGraph  │     │  MCP Tools  │
+              │  Layer    │      │ ReAct Agent │     │  (RAG)      │
               └─────┬─────┘      └─────────────┘     └─────────────┘
                     │
          ┌──────────┼──────────┐
@@ -504,16 +668,56 @@ infrastructure:
 - [x] **Phase 1:** Streamlit UI + Mock
 - [x] **Phase 2:** FastAPI Backend + WebSocket
 - [x] **Phase 3:** Database Layer + Persistence
-- [x] **Phase 4:** ReAct Multi-Agent Architecture ⭐ **(текущая)**
-- [ ] **Phase 5:** RAG (Hybrid Retrieval) — индексация Google Docs
-- [ ] **Phase 6:** Products Agent MCP — реальная база знаний
-- [ ] **Phase 7:** Compatibility Agent MCP — база сочетаемости
-- [ ] **Phase 8:** Marketing Agent MCP + Banner Generation Tool
+- [x] **Phase 4:** ReAct Multi-Agent Architecture
+- [x] **Phase 5:** RAG (Hybrid Retrieval) — индексация Google Docs
+- [x] **Phase 6:** Subagents with RAG (Subgraph Architecture) ⭐ **(текущая)**
+- [ ] **Phase 7:** Banner Generation Tool (MCP) + Marketing Agent
+- [ ] **Phase 8:** Production Deployment (CI/CD, Monitoring)
 
-### Текущий статус: Phase 4 Complete ✅
+### Текущий статус: Phase 6 Complete ✅
 
-ReAct Main Agent работает с 3 субагентами-заглушками.  
-Готов к интеграции реальных баз знаний через RAG (Phase 5).
+**ReAct Main Agent** работает с 3 RAG субагентами:
+- **Products Subagent** — полноценный ReAct граф с RAG MCP tools
+- **Compatibility Subagent** — полноценный ReAct граф с RAG MCP tools
+- **Marketing Subagent** — placeholder для будущих инструментов
+
+**Готово к интеграции новых инструментов через MCP!**
+
+## 🎓 Демонстрация компетенций
+
+Этот проект демонстрирует:
+
+### 1. Современная архитектура AI систем
+- ✅ **ReAct Agents** — автономное принятие решений
+- ✅ **Multi-Agent Architecture** — специализация и масштабируемость
+- ✅ **RAG (Retrieval Augmented Generation)** — гибридный поиск
+- ✅ **MCP Protocol** — расширяемость инструментов
+
+### 2. Профессиональная инженерия
+- ✅ **Clean Architecture** — слои, SOLID, DIP
+- ✅ **Repository Pattern + Unit of Work** — чистый Data Access Layer
+- ✅ **Dependency Injection** — через `app.state` и Protocol interfaces
+- ✅ **Production-Ready оптимизации** — синглтоны, кэширование моделей
+- ✅ **Structured Logging** — JSON логи для парсинга и анализа
+
+### 3. Качество кода
+- ✅ **Type Safety** — mypy, Pydantic, type hints
+- ✅ **Code Style** — ruff (линтинг + форматирование)
+- ✅ **Тесты** — unit + integration (pytest)
+- ✅ **Миграции** — Alembic для версионирования БД
+
+### 4. DevOps/Infrastructure
+- ✅ **Docker/Docker Compose** — полная контейнеризация
+- ✅ **Hot-Reload** — быстрая итерация при разработке
+- ✅ **Health Checks** — Kubernetes-ready probes
+- ✅ **Debug Tools** — Dozzle (logs), Adminer (DB)
+- ✅ **Environment Management** — .env + YAML конфиги
+
+### 5. Масштабируемость
+- ✅ **Async/Await** — асинхронность на всех уровнях
+- ✅ **PostgreSQL Pool** — эффективное использование соединений
+- ✅ **Redis** — готовность к кэшированию и очередям
+- ✅ **Модульная структура** — легко добавлять новые субагенты
 
 ## 📄 Лицензия
 

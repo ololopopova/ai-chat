@@ -41,7 +41,7 @@ class AsyncSessionFactory:
         )
 
     @asynccontextmanager
-    async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
+    async def get_session(self) -> AsyncGenerator[AsyncSession]:
         """
         Получить сессию как async context manager.
 
@@ -65,7 +65,7 @@ class AsyncSessionFactory:
             await session.close()
 
     @asynccontextmanager
-    async def get_transaction(self) -> AsyncGenerator[AsyncSession, None]:
+    async def get_transaction(self) -> AsyncGenerator[AsyncSession]:
         """
         Получить сессию с автоматическим commit/rollback.
 
@@ -114,7 +114,7 @@ def get_session_factory() -> AsyncSessionFactory:
     return _session_factory
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_session() -> AsyncGenerator[AsyncSession]:
     """
     Dependency для FastAPI — получить async session.
 

@@ -51,7 +51,7 @@ def mock_embeddings() -> list[list[float]]:
 async def test_ingest_full_pipeline_mock(
     mock_html: str,
     mock_embeddings: list[list[float]],
-    db_session_factory: AsyncMock,  # noqa: ARG001
+    db_session_factory: AsyncMock,
 ) -> None:
     """Полный пайплайн индексации с mock данными."""
     # Mock UnitOfWork и репозитории
@@ -121,7 +121,7 @@ async def test_ingest_full_pipeline_mock(
 
 
 @pytest.mark.asyncio
-async def test_ingest_handles_errors(db_session_factory: AsyncMock) -> None:  # noqa: ARG001
+async def test_ingest_handles_errors(db_session_factory: AsyncMock) -> None:
     """Обработка ошибок при индексации."""
     # Mock UnitOfWork
     uow = MagicMock(spec=UnitOfWork)

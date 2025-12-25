@@ -160,7 +160,18 @@ class HTMLParser:
         """
         if element.name == "table":
             return self._parse_table(element)
-        elif element.name in ["p", "div", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li"]:
+        elif element.name in [
+            "p",
+            "div",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "ul",
+            "ol",
+            "li",
+        ]:
             return element.get_text(separator="\n", strip=True)
         else:
             # Для остальных элементов — просто текст

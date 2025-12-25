@@ -89,7 +89,28 @@ docker exec ai_chat_api alembic upgrade head
 | redis | 6379 | default | Redis 7 |
 | api | 8000 | app | FastAPI Backend |
 | ui | 8501 | app | Streamlit Frontend |
+| **dozzle** | **9999** | **debug** | **🔥 Docker Logs Viewer** |
 | adminer | 8080 | debug | Web UI для БД |
+
+### 🔥 Dozzle — Docker Logs в браузере
+
+Красивый веб-интерфейс для просмотра логов всех контейнеров в реальном времени!
+
+```bash
+# Запустить Dozzle
+docker compose -f docker/docker-compose.yml --profile debug up -d dozzle
+
+# Открыть в браузере
+open http://localhost:9999
+```
+
+**Фичи:**
+- ✅ Все Docker логи в одном месте
+- ✅ Поиск и фильтрация в реальном времени
+- ✅ Разные контейнеры в табах
+- ✅ Темная тема
+- ✅ Автоматическая подсветка JSON
+- ✅ История логов (последние 300 строк)
 
 ---
 
@@ -107,8 +128,31 @@ docker compose -f docker/docker-compose.yml --profile app up -d
 # С пересборкой образов
 docker compose -f docker/docker-compose.yml --profile app up -d --build
 
-# С Adminer (debug)
-docker compose -f docker/docker-compose.yml --profile debug up -d
+# С Adminer + Dozzle (debug)
+docker compose -f docker/docker-compose.yml --profile app --profile debug up -d
+```
+
+### Просмотр логов
+
+**Option 1: Dozzle (рекомендуется!)**
+```bash
+# Запустить Dozzle
+docker compose -f docker/docker-compose.yml --profile debug up -d dozzle
+
+# Открыть веб-интерфейс
+open http://localhost:9999
+```
+
+**Option 2: Командная строка**
+```bash
+# Все логи API
+docker compose -f docker/docker-compose.yml logs -f api
+
+# Последние 100 строк
+docker compose -f docker/docker-compose.yml logs --tail=100 api
+
+# Только ошибки
+docker compose -f docker/docker-compose.yml logs api | grep ERROR
 ```
 
 ### Управление

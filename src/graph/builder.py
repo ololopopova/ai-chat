@@ -8,7 +8,7 @@ from langgraph.prebuilt import create_react_agent
 
 from src.core.logging import get_logger
 from src.graph.prompts import MAIN_AGENT_SYSTEM_PROMPT
-from src.graph.tools import compatibility_agent, marketing_agent, products_agent
+from src.graph.subagents import compatibility_agent, marketing_agent, products_agent
 from src.llm import get_llm_provider
 
 if TYPE_CHECKING:

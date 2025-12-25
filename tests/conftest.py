@@ -123,7 +123,7 @@ def test_app(test_settings: Settings) -> FastAPI:
 
 
 @pytest.fixture
-async def async_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def async_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """Создать async HTTP клиент для API тестов."""
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -137,7 +137,7 @@ def sync_test_client(test_app: FastAPI) -> TestClient:
 
 
 @pytest.fixture(autouse=True)
-def cleanup_caches() -> Generator[None, None, None]:
+def cleanup_caches() -> Generator[None]:
     """Автоматическая очистка кэшей после каждого теста."""
     yield
     clear_domains_cache()
@@ -159,7 +159,7 @@ def db_url() -> str:
 
 
 @pytest_asyncio.fixture
-async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
+async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine]:
     """
     Создать async engine для тестовой БД.
 
@@ -193,7 +193,7 @@ async def db_engine(db_url: str) -> AsyncGenerator[AsyncEngine, None]:
 
 
 @pytest_asyncio.fixture
-async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
+async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None]:
     """
     Инициализировать тестовую БД (создать таблицы).
 
@@ -224,8 +224,8 @@ async def setup_test_db(db_engine: AsyncEngine) -> AsyncGenerator[None, None]:
 @pytest.fixture
 async def db_session(
     db_engine: AsyncEngine,
-    setup_test_db: None,  # noqa: ARG001
-) -> AsyncGenerator[AsyncSession, None]:
+    setup_test_db: None,
+) -> AsyncGenerator[AsyncSession]:
     """
     Создать async session для теста с автоматическим rollback.
 
