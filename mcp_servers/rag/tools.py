@@ -94,18 +94,14 @@ async def hybrid_search(input_data: HybridSearchInput) -> RAGSearchResult:
             chunks = chunks[: input_data.final_top_k]
 
         # 3. Фильтрация по min_score
-        filtered_chunks = [
-            chunk for chunk in chunks if chunk.score >= input_data.min_score
-        ]
+        filtered_chunks = [chunk for chunk in chunks if chunk.score >= input_data.min_score]
 
         logger.info(
             "MCP hybrid_search completed",
             extra={
                 "domain": input_data.domain,
                 "results_after_filter": len(filtered_chunks),
-                "top_scores": [c.score for c in filtered_chunks[:5]]
-                if filtered_chunks
-                else [],
+                "top_scores": [c.score for c in filtered_chunks[:5]] if filtered_chunks else [],
             },
         )
 

@@ -32,9 +32,7 @@ class ParsedSection:
 
     def __repr__(self) -> str:
         """Строковое представление."""
-        content_preview = (
-            self.content[:50] + "..." if len(self.content) > 50 else self.content
-        )
+        content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
         return f"<ParsedSection(h{self.header_level}='{self.header}', content='{content_preview}')>"
 
 
@@ -105,18 +103,12 @@ class HTMLParser:
             content = "\n\n".join(content_parts).strip()
 
             if content:  # Только непустые секции
-                sections.append(
-                    ParsedSection(header=header_text, header_level=1, content=content)
-                )
+                sections.append(ParsedSection(header=header_text, header_level=1, content=content))
 
-        logger.info(
-            "Parsed document into sections", extra={"sections_count": len(sections)}
-        )
+        logger.info("Parsed document into sections", extra={"sections_count": len(sections)})
         return sections
 
-    def _get_siblings_between(
-        self, start: Tag, end: Tag
-    ) -> list[Tag | NavigableString]:
+    def _get_siblings_between(self, start: Tag, end: Tag) -> list[Tag | NavigableString]:
         """Получить все sibling элементы между start и end."""
         siblings: list[Tag | NavigableString] = []
         current = start.find_next_sibling()

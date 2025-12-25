@@ -63,9 +63,7 @@ class RAGChunk(BaseModel):
     content: str = Field(..., description="Текстовое содержимое")
     header: str | None = Field(None, description="Заголовок секции")
     score: float = Field(..., description="Score релевантности (0.0-1.0)")
-    search_type: Literal["hybrid"] = Field(
-        ..., description="Тип поиска (всегда hybrid)"
-    )
+    search_type: Literal["hybrid"] = Field(..., description="Тип поиска (всегда hybrid)")
 
 
 class RAGSearchResult(BaseModel):

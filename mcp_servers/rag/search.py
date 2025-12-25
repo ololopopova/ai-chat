@@ -84,17 +84,13 @@ async def hybrid_search(
                         all_results[chunk.id] = (
                             score,
                             chunk.content,
-                            chunk.chunk_metadata.get("header")
-                            if chunk.chunk_metadata
-                            else None,
+                            chunk.chunk_metadata.get("header") if chunk.chunk_metadata else None,
                         )
                 else:
                     all_results[chunk.id] = (
                         score,
                         chunk.content,
-                        chunk.chunk_metadata.get("header")
-                        if chunk.chunk_metadata
-                        else None,
+                        chunk.chunk_metadata.get("header") if chunk.chunk_metadata else None,
                     )
 
         # 2. FTS searches
@@ -112,11 +108,7 @@ async def hybrid_search(
                 if len(results) == 1:
                     chunk, _ = results[0]
                     score = 1.0
-                    header = (
-                        chunk.chunk_metadata.get("header")
-                        if chunk.chunk_metadata
-                        else None
-                    )
+                    header = chunk.chunk_metadata.get("header") if chunk.chunk_metadata else None
                     if chunk.id in all_results:
                         if score > all_results[chunk.id][0]:
                             all_results[chunk.id] = (score, chunk.content, header)
@@ -128,13 +120,9 @@ async def hybrid_search(
                     rank_range = max_rank - min_rank if max_rank > min_rank else 1.0
 
                     for chunk, rank in results:
-                        score = (
-                            (rank - min_rank) / rank_range if rank_range > 0 else 1.0
-                        )
+                        score = (rank - min_rank) / rank_range if rank_range > 0 else 1.0
                         header = (
-                            chunk.chunk_metadata.get("header")
-                            if chunk.chunk_metadata
-                            else None
+                            chunk.chunk_metadata.get("header") if chunk.chunk_metadata else None
                         )
                         if chunk.id in all_results:
                             if score > all_results[chunk.id][0]:

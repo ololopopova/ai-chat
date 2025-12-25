@@ -271,10 +271,7 @@ class ChunkRepository(BaseRepository[Chunk]):
             Список чанков без embedding.
         """
         stmt = (
-            select(Chunk)
-            .where(Chunk.embedding.is_(None))
-            .order_by(Chunk.created_at)
-            .limit(limit)
+            select(Chunk).where(Chunk.embedding.is_(None)).order_by(Chunk.created_at).limit(limit)
         )
 
         if domain_id is not None:

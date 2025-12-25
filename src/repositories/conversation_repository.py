@@ -199,9 +199,7 @@ class ConversationRepository(BaseRepository[Conversation]):
         Returns:
             Список диалогов, отсортированных по updated_at DESC.
         """
-        stmt = (
-            select(Conversation).order_by(Conversation.updated_at.desc()).limit(limit)
-        )
+        stmt = select(Conversation).order_by(Conversation.updated_at.desc()).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

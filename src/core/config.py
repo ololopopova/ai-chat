@@ -57,9 +57,7 @@ class Settings(BaseSettings):
     # ==========================================
     # CORS Settings
     # ==========================================
-    cors_origins: list[str] = Field(
-        default=["http://localhost:8501", "http://127.0.0.1:8501"]
-    )
+    cors_origins: list[str] = Field(default=["http://localhost:8501", "http://127.0.0.1:8501"])
 
     # ==========================================
     # WebSocket Settings
@@ -92,9 +90,7 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://ai_chat:ai_chat_secret@localhost:5433/ai_chat",
         description="Async PostgreSQL connection URL",
     )
-    database_pool_size: int = Field(
-        default=5, ge=1, le=50, description="Connection pool size"
-    )
+    database_pool_size: int = Field(default=5, ge=1, le=50, description="Connection pool size")
     database_max_overflow: int = Field(
         default=10, ge=0, le=100, description="Max overflow connections"
     )

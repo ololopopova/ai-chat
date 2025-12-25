@@ -71,9 +71,7 @@ def test_inject_history_filters_tool_calls() -> None:
 
 def test_inject_history_window() -> None:
     """Тест: history_window ограничивает количество сообщений."""
-    messages = [
-        HumanMessage(content=f"Message {i}") for i in range(20)
-    ]
+    messages = [HumanMessage(content=f"Message {i}") for i in range(20)]
 
     result = inject_history(messages, history_window=5)
     lines = result.split("\n")
@@ -222,10 +220,7 @@ async def test_products_agent_with_history() -> None:
         AIMessage(content="Мелатонин"),
     ]
 
-    result = await products_agent.ainvoke({
-        "query": "А дозировка?",
-        "messages": messages
-    })
+    result = await products_agent.ainvoke({"query": "А дозировка?", "messages": messages})
 
     assert isinstance(result, str)
     assert len(result) > 0
@@ -239,10 +234,7 @@ async def test_compatibility_agent_with_history() -> None:
         AIMessage(content="Да, это безопасная комбинация"),
     ]
 
-    result = await compatibility_agent.ainvoke({
-        "query": "А с кальцием?",
-        "messages": messages
-    })
+    result = await compatibility_agent.ainvoke({"query": "А с кальцием?", "messages": messages})
 
     assert isinstance(result, str)
     assert len(result) > 0
@@ -287,4 +279,3 @@ def test_compatibility_config_values() -> None:
     assert COMPATIBILITY_CONFIG.name == "compatibility"
     assert COMPATIBILITY_CONFIG.domain == "compatibility"
     assert COMPATIBILITY_CONFIG.rag_min_score == 0.6  # Выше порог для безопасности
-

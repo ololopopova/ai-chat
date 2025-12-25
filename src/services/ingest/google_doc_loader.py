@@ -36,9 +36,7 @@ class GoogleDocLoader:
     # Шаблон для экспорта
     EXPORT_TEMPLATE = "https://docs.google.com/document/d/{doc_id}/export?format=html"
 
-    def __init__(
-        self, timeout: tuple[float, float] = (CONNECT_TIMEOUT, READ_TIMEOUT)
-    ) -> None:
+    def __init__(self, timeout: tuple[float, float] = (CONNECT_TIMEOUT, READ_TIMEOUT)) -> None:
         """
         Инициализация загрузчика.
 
@@ -91,9 +89,7 @@ class GoogleDocLoader:
         doc_id = self.extract_doc_id(url)
         export_url = self.EXPORT_TEMPLATE.format(doc_id=doc_id)
 
-        logger.info(
-            "Loading Google Doc", extra={"doc_id": doc_id, "export_url": export_url}
-        )
+        logger.info("Loading Google Doc", extra={"doc_id": doc_id, "export_url": export_url})
 
         try:
             timeout = httpx.Timeout(

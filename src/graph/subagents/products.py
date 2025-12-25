@@ -99,14 +99,10 @@ async def products_agent(query: str, messages: list[Any] | None = None) -> str:
         # Формируем полный запрос с историей
         full_query = query
         if history_context:
-            full_query = (
-                f"История диалога:\n{history_context}\n\nТекущий вопрос: {query}"
-            )
+            full_query = f"История диалога:\n{history_context}\n\nТекущий вопрос: {query}"
 
         # Вызываем субагент
-        result = await subagent.ainvoke(
-            {"messages": [{"role": "user", "content": full_query}]}
-        )
+        result = await subagent.ainvoke({"messages": [{"role": "user", "content": full_query}]})
 
         # Извлекаем ответ из результата
         if result and "messages" in result:

@@ -216,10 +216,7 @@ class JobRepository(BaseRepository[Job]):
             Список задач в очереди, отсортированных по created_at.
         """
         stmt = (
-            select(Job)
-            .where(Job.status == JobStatus.QUEUED)
-            .order_by(Job.created_at)
-            .limit(limit)
+            select(Job).where(Job.status == JobStatus.QUEUED).order_by(Job.created_at).limit(limit)
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
@@ -235,10 +232,7 @@ class JobRepository(BaseRepository[Job]):
             Список выполняющихся задач.
         """
         stmt = (
-            select(Job)
-            .where(Job.status == JobStatus.RUNNING)
-            .order_by(Job.started_at)
-            .limit(limit)
+            select(Job).where(Job.status == JobStatus.RUNNING).order_by(Job.started_at).limit(limit)
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
@@ -259,12 +253,7 @@ class JobRepository(BaseRepository[Job]):
         Returns:
             Список задач с указанным статусом.
         """
-        stmt = (
-            select(Job)
-            .where(Job.status == status)
-            .order_by(Job.created_at.desc())
-            .limit(limit)
-        )
+        stmt = select(Job).where(Job.status == status).order_by(Job.created_at.desc()).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
