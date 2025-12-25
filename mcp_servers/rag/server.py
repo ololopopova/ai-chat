@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 app = Server("rag-search")
 
 
-@app.list_tools()
+@app.list_tools()  # type: ignore[untyped-decorator, no-untyped-call]
 async def list_tools() -> list[Tool]:
     """
     Список доступных RAG tools.
@@ -45,7 +45,7 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@app.call_tool()
+@app.call_tool()  # type: ignore[untyped-decorator]
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[Any]:
     """
     Вызов RAG tool.
