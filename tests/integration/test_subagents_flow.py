@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
 
 from src.graph.builder import build_chat_graph
 
@@ -12,12 +13,94 @@ from src.graph.builder import build_chat_graph
 # =============================================================================
 
 
+class MockChatModel:
+    """Mock модель для тестирования без реальных API вызовов."""
+
+    def __init__(self, *args, **kwargs):
+        """Инициализация mock модели (принимает любые параметры)."""
+        pass
+
+    async def ainvoke(self, messages, config: RunnableConfig | None = None):
+        """Mock ainvoke - возвращает простой ответ."""
+        # Извлекаем последний user message
+        user_content = ""
+        for msg in reversed(messages):
+            if isinstance(msg, HumanMessage):
+                user_content = msg.content.lower()
+                break
+
+        # Возвращаем mock ответ в зависимости от содержимого
+        if "сон" in user_content or "мелатонин" in user_content:
+            content = "Для сна рекомендуется мелатонин 3-5 мг за 30 минут до сна."
+        elif "магний" in user_content or "совместим" in user_content or "сочета" in user_content:
+            content = "Мелатонин и магний совместимы, их можно принимать вместе."
+        elif "баннер" in user_content or "маркетинг" in user_content:
+            content = "Функция создания баннеров будет доступна в Phase 8."
+        elif "погода" in user_content:
+            content = "Я специализируюсь на БАДах и биохакинге."
+        elif "дозир" in user_content:
+            content = "Рекомендуемая дозировка: 3-5 мг мелатонина."
+        else:
+            content = "Понял ваш запрос о БАДах."
+
+        return AIMessage(content=content)
+
+    def bind_tools(self, tools, **kwargs):
+        """Mock bind_tools - возвращает self."""
+        return self
+
+
 @pytest.fixture(autouse=True)
-def use_mock_llm(monkeypatch):
-    """Автоматически использовать Mock LLM для всех integration тестов."""
-    # Удаляем API ключ чтобы форсировать использование MockChatModel
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.setenv("USE_MOCK_LLM", "true")
+def mock_llm(monkeypatch):
+    """Автоматически мокнуть init_chat_model для всех integration тестов."""
+    def mock_init_chat_model(*args, **kwargs):
+        return MockChatModel()
+
+    # Заменяем init_chat_model на mock
+    monkeypatch.setattr("langchain.chat_models.init_chat_model", mock_init_chat_model)
+    monkeypatch.setattr("src.llm.provider.init_chat_model", mock_init_chat_model)
+
+
+@pytest.fixture(autouse=True)
+async def mock_rag_search(monkeypatch):
+    """Автоматически мокнуть RAG hybrid_search для всех integration тестов."""
+    from mcp_servers.rag.schemas import RAGChunk, RAGSearchResult
+
+    async def mock_hybrid_search(*args, **kwargs):
+        """Mock hybrid_search - возвращает тестовые данные."""
+        domain = kwargs.get("domain", "products")
+
+        if domain == "products":
+            chunks = [
+                RAGChunk(
+                    chunk_id="mock-1",
+                    content="Мелатонин 3-5 мг для улучшения сна.",
+                    metadata={"source": "test"},
+                    score=0.95,
+                    search_type="hybrid",
+                ),
+            ]
+        elif domain == "compatibility":
+            chunks = [
+                RAGChunk(
+                    chunk_id="mock-2",
+                    content="Мелатонин и магний совместимы и синергичны.",
+                    metadata={"source": "test"},
+                    score=0.92,
+                    search_type="hybrid",
+                ),
+            ]
+        else:
+            chunks = []
+
+        return RAGSearchResult(
+            results=chunks,
+            total_count=len(chunks),
+            query_info={"mock": True},
+        )
+
+    # Заменяем hybrid_search на mock
+    monkeypatch.setattr("mcp_servers.rag.tools.hybrid_search", mock_hybrid_search)
 
 
 # =============================================================================
