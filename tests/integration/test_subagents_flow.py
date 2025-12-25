@@ -32,7 +32,11 @@ class MockChatModel:
         # Возвращаем mock ответ в зависимости от содержимого
         if "сон" in user_content or "мелатонин" in user_content:
             content = "Для сна рекомендуется мелатонин 3-5 мг за 30 минут до сна."
-        elif "магний" in user_content or "совместим" in user_content or "сочета" in user_content:
+        elif (
+            "магний" in user_content
+            or "совместим" in user_content
+            or "сочета" in user_content
+        ):
             content = "Мелатонин и магний совместимы, их можно принимать вместе."
         elif "баннер" in user_content or "маркетинг" in user_content:
             content = "Функция создания баннеров будет доступна в Phase 8."
