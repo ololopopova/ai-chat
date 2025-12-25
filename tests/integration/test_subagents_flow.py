@@ -2,10 +2,25 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 from langchain_core.messages import HumanMessage
 
 from src.graph.builder import build_chat_graph
+
+
+# =============================================================================
+# SETUP: Mock LLM для integration тестов
+# =============================================================================
+
+
+@pytest.fixture(autouse=True)
+def use_mock_llm(monkeypatch):
+    """Автоматически использовать Mock LLM для всех integration тестов."""
+    # Удаляем API ключ чтобы форсировать использование MockChatModel
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("USE_MOCK_LLM", "true")
 
 # =============================================================================
 # FIXTURES
