@@ -9,7 +9,8 @@ LABEL description="AI Chat API Server"
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app
 
 # Рабочая директория
 WORKDIR /app
@@ -23,8 +24,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Предзагрузка модели Cross-Encoder в образ (кэширование)
+# Модель будет доступна оффлайн и не будет скачиваться при старте контейнера
+RUN python -c "from sentence_transformers import CrossEncoder; \
+    print('Downloading Cross-Encoder model...'); \
+    CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2'); \
+    print('Model cached successfully')"
+
 # Копируем исходный код
 COPY src/ ./src/
+COPY mcp_servers/ ./mcp_servers/
 COPY ui/ ./ui/
 COPY scripts/ ./scripts/
 COPY config/ ./config/
