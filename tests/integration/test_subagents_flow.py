@@ -7,7 +7,6 @@ from langchain_core.messages import HumanMessage
 
 from src.graph.builder import build_chat_graph
 
-
 # =============================================================================
 # FIXTURES
 # =============================================================================
@@ -199,7 +198,7 @@ async def test_full_flow_with_history(chat_graph) -> None:
 
     # Второй запрос (уточнение)
     result2 = await chat_graph.ainvoke({
-        "messages": messages_after_first + [HumanMessage(content="А дозировка какая?")]
+        "messages": [*messages_after_first, HumanMessage(content="А дозировка какая?")]
     })
 
     assert result2 is not None

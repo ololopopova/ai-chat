@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from sentence_transformers import CrossEncoder
 
-from src.core.logging import get_logger
 from mcp_servers.rag.schemas import RAGChunk
+from src.core.logging import get_logger
 
 if TYPE_CHECKING:
     pass

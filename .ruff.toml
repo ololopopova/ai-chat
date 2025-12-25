@@ -48,6 +48,7 @@ ignore = [
 "alembic/env.py" = ["E402"]
 "ui/*.py" = ["E402"]
 "ui/**/*.py" = ["E402"]
+"tests/conftest.py" = ["E402"]
 
 [lint.isort]
 # Import sorting

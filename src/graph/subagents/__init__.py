@@ -11,9 +11,9 @@
 from __future__ import annotations
 
 __all__ = [
-    "products_agent",
     "compatibility_agent",
     "marketing_agent",
+    "products_agent",
 ]
 
 from src.graph.subagents.compatibility import compatibility_agent

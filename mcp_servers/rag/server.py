@@ -14,7 +14,6 @@ from mcp.types import Tool
 
 from mcp_servers.rag.schemas import HybridSearchInput
 from mcp_servers.rag.tools import hybrid_search
-
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)

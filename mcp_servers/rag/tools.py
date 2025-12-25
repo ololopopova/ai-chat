@@ -13,7 +13,6 @@ from __future__ import annotations
 from mcp_servers.rag.reranker import Reranker
 from mcp_servers.rag.schemas import HybridSearchInput, RAGSearchResult
 from mcp_servers.rag.search import hybrid_search as do_hybrid_search
-
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)

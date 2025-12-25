@@ -7,13 +7,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from mcp_servers.rag.schemas import RAGChunk
 from src.core.logging import get_logger
 from src.repositories.chunk_repository import ChunkRepository
 from src.repositories.domain_repository import DomainRepository
 from src.repositories.unit_of_work import UnitOfWork
 from src.services.ingest.embedding_service import EmbeddingService
-
-from mcp_servers.rag.schemas import RAGChunk
 
 logger = get_logger(__name__)
 
