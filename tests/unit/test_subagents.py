@@ -45,7 +45,7 @@ def test_inject_history_multiple_messages() -> None:
         HumanMessage(content="А дозировка?"),
     ]
     result = inject_history(messages)
-    
+
     assert "User: Что принимать для сна?" in result
     assert "Assistant: Рекомендую мелатонин." in result
     assert "User: А дозировка?" in result
@@ -59,7 +59,7 @@ def test_inject_history_filters_tool_calls() -> None:
         AIMessage(content="Ответ"),
     ]
     result = inject_history(messages)
-    
+
     assert "User: Привет" in result
     assert "Assistant: Ответ" in result
     # Сообщение с tool_calls не должно попасть в историю
@@ -71,10 +71,10 @@ def test_inject_history_window() -> None:
     messages = [
         HumanMessage(content=f"Message {i}") for i in range(20)
     ]
-    
+
     result = inject_history(messages, history_window=5)
     lines = result.split("\n")
-    
+
     # Должно быть только 5 последних сообщений
     assert len(lines) == 5
     assert "Message 15" in result
@@ -94,7 +94,7 @@ def test_subagent_config_defaults() -> None:
         domain="products",
         system_prompt="Test prompt",
     )
-    
+
     assert config.name == "test"
     assert config.domain == "products"
     assert config.system_prompt == "Test prompt"
@@ -113,7 +113,7 @@ def test_subagent_config_custom() -> None:
         rag_top_k=10,
         rag_min_score=0.8,
     )
-    
+
     assert config.history_window == 20
     assert config.rag_top_k == 10
     assert config.rag_min_score == 0.8
@@ -127,7 +127,7 @@ def test_subagent_config_custom() -> None:
 def test_create_rag_subagent_products() -> None:
     """Тест: создание Products subagent."""
     subagent = create_rag_subagent(PRODUCTS_CONFIG)
-    
+
     assert subagent is not None
     # Проверяем, что это скомпилированный граф
     assert hasattr(subagent, "ainvoke")
@@ -137,7 +137,7 @@ def test_create_rag_subagent_products() -> None:
 def test_create_rag_subagent_compatibility() -> None:
     """Тест: создание Compatibility subagent."""
     subagent = create_rag_subagent(COMPATIBILITY_CONFIG)
-    
+
     assert subagent is not None
     assert hasattr(subagent, "ainvoke")
 
@@ -152,7 +152,7 @@ def test_create_rag_subagent_custom_config() -> None:
         rag_top_k=3,
         rag_min_score=0.7,
     )
-    
+
     subagent = create_rag_subagent(custom_config)
     assert subagent is not None
 
