@@ -36,13 +36,13 @@ jobs:
           pip install -r requirements-dev.txt
       
       - name: Run ruff check
-        run: ruff check --fix --unsafe-fixes .
+        run: ruff check .
       
       - name: Run ruff format check
-        run: ruff format .
+        run: ruff format --check .
       
       - name: Run mypy
-        run: mypy src scripts ui mcp_servers --ignore-missing-imports
+        run: mypy src scripts ui mcp_servers --ignore-missing-imports --namespace-packages --explicit-package-bases
 
   test-unit:
     name: Unit Tests
