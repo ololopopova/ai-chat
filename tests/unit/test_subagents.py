@@ -16,7 +16,11 @@ from src.graph.subagents.compatibility import (
     get_compatibility_subagent,
 )
 from src.graph.subagents.marketing import marketing_agent
-from src.graph.subagents.products import PRODUCTS_CONFIG, get_products_subagent, products_agent
+from src.graph.subagents.products import (
+    PRODUCTS_CONFIG,
+    get_products_subagent,
+    products_agent,
+)
 
 
 # =============================================================================
