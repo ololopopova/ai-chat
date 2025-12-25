@@ -51,7 +51,11 @@ class Reranker:
 
         logger.debug(
             "Reranking",
-            extra={"query_length": len(query), "chunks_count": len(chunks), "top_k": top_k},
+            extra={
+                "query_length": len(query),
+                "chunks_count": len(chunks),
+                "top_k": top_k,
+            },
         )
 
         # Формируем пары (query, chunk_content)
@@ -89,4 +93,3 @@ class Reranker:
         )
 
         return final
-

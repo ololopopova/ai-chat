@@ -128,7 +128,9 @@ class Chunk(Base):
 
     def __repr__(self) -> str:
         """Строковое представление чанка."""
-        content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
+        content_preview = (
+            self.content[:50] + "..." if len(self.content) > 50 else self.content
+        )
         return f"<Chunk(id={self.id}, domain_id={self.domain_id}, content='{content_preview}')>"
 
     @property
@@ -149,4 +151,6 @@ def make_tsquery(query: str) -> Any:
     """
     # Используем plainto_tsquery для простых запросов
     # и websearch_to_tsquery для поддержки операторов
-    return func.plainto_tsquery("russian", query) | func.plainto_tsquery("english", query)
+    return func.plainto_tsquery("russian", query) | func.plainto_tsquery(
+        "english", query
+    )

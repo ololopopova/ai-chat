@@ -126,7 +126,9 @@ async def websocket_chat(websocket: WebSocket, thread_id: str) -> None:
 
                 # Обработка сообщения через ChatService (если доступен)
                 if chat_service is not None:
-                    async for event in chat_service.process_message(message.content, thread_id):
+                    async for event in chat_service.process_message(
+                        message.content, thread_id
+                    ):
                         # Сериализуем события в JSON
                         await websocket.send_json(event.to_dict())
                 else:

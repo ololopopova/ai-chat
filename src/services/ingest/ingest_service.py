@@ -125,7 +125,9 @@ class IngestService:
                 doc_url = domain.google_doc_url
 
             # 2. Загрузить HTML
-            logger.info("Loading document", extra={"agent_id": agent_id, "url": doc_url})
+            logger.info(
+                "Loading document", extra={"agent_id": agent_id, "url": doc_url}
+            )
             try:
                 html = await self._loader.load(doc_url)
             except IngestError as e:

@@ -143,7 +143,9 @@ class LLMProvider:
                     init_chat_model(**fallback_params),
                 )
                 # with_fallbacks возвращает RunnableWithFallbacks, совместим с BaseChatModel
-                model_with_fallback = cast("BaseChatModel", model.with_fallbacks([fallback]))
+                model_with_fallback = cast(
+                    "BaseChatModel", model.with_fallbacks([fallback])
+                )
                 logger.info(
                     "LLM initialized with fallback",
                     extra={

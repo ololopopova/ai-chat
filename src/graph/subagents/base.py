@@ -233,7 +233,8 @@ def _create_rag_tool(config: SubagentConfig) -> Any:
 
     # Устанавливаем правильное имя для tool
     rag_hybrid_search.name = "rag_hybrid_search"
-    rag_hybrid_search.description = f"MCP hybrid search с reranking для домена '{config.domain}'"
+    rag_hybrid_search.description = (
+        f"MCP hybrid search с reranking для домена '{config.domain}'"
+    )
 
     return rag_hybrid_search
-

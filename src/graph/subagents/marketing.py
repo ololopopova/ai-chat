@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 # WRAPPER TOOL для Main Agent (ЗАГЛУШКА)
 # =============================================================================
 
+
 @tool
 async def marketing_agent(query: str, messages: list[Any] | None = None) -> str:
     """
@@ -114,4 +115,3 @@ async def marketing_agent(query: str, messages: list[Any] | None = None) -> str:
    - Тесты генерации баннера
    - Тесты прогресса
 """
-

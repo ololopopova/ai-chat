@@ -15,13 +15,20 @@ logger = get_logger(__name__)
 RequestResponseEndpoint = Callable[[Request], Awaitable[Response]]
 
 # Re-export для обратной совместимости
-__all__ = ["RequestIdMiddleware", "RequestLoggingMiddleware", "TimingMiddleware", "get_request_id"]
+__all__ = [
+    "RequestIdMiddleware",
+    "RequestLoggingMiddleware",
+    "TimingMiddleware",
+    "get_request_id",
+]
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Middleware для добавления уникального request_id к каждому запросу."""
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """
         Обработать запрос с добавлением request_id.
 
@@ -50,7 +57,9 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Middleware для логирования запросов."""
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """
         Логировать входящие запросы и время выполнения.
 
@@ -114,7 +123,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 class TimingMiddleware(BaseHTTPMiddleware):
     """Middleware для добавления заголовка X-Response-Time."""
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         """
         Добавить заголовок с временем выполнения запроса.
 

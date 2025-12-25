@@ -31,7 +31,9 @@ class ChatEvent:
 class StageEvent(ChatEvent):
     """Событие смены стадии обработки."""
 
-    def __init__(self, stage: str, status: str = "active", message: str | None = None) -> None:
+    def __init__(
+        self, stage: str, status: str = "active", message: str | None = None
+    ) -> None:
         self.type = "stage"
         self.stage = stage
         self.status = status
@@ -215,7 +217,9 @@ class ChatService:
                     # Переключаем стадию на CALLING_TOOL
                     if not is_calling_tool:
                         if current_stage:
-                            yield StageEvent(stage=current_stage.value, status="completed")
+                            yield StageEvent(
+                                stage=current_stage.value, status="completed"
+                            )
 
                         current_stage = Stage.CALLING_TOOL
                         is_calling_tool = True
@@ -246,7 +250,9 @@ class ChatService:
                     # Если начался стриминг финального ответа — переключаемся на SYNTHESIZING
                     if current_stage != Stage.SYNTHESIZING:
                         if current_stage:
-                            yield StageEvent(stage=current_stage.value, status="completed")
+                            yield StageEvent(
+                                stage=current_stage.value, status="completed"
+                            )
 
                         current_stage = Stage.SYNTHESIZING
                         yield StageEvent(
@@ -264,7 +270,10 @@ class ChatService:
                         elif isinstance(content, list):
                             # GPT-5.x формат с блоками
                             for block in content:
-                                if isinstance(block, dict) and block.get("type") == "text":
+                                if (
+                                    isinstance(block, dict)
+                                    and block.get("type") == "text"
+                                ):
                                     text = block.get("text", "")
                                     if text:
                                         full_response += text
@@ -289,7 +298,9 @@ class ChatService:
             # Завершаем текущую стадию
             if current_stage:
                 final_stage_value = (
-                    current_stage.value if isinstance(current_stage, Stage) else str(current_stage)
+                    current_stage.value
+                    if isinstance(current_stage, Stage)
+                    else str(current_stage)
                 )
                 yield StageEvent(
                     stage=final_stage_value,

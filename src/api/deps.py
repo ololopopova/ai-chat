@@ -194,6 +194,8 @@ async def get_unit_of_work() -> AsyncGenerator["UnitOfWork", None]:
 # Type aliases для использования в route handlers
 DomainRepo = Annotated["DomainRepository", Depends(get_domain_repository)]
 ChunkRepo = Annotated["ChunkRepository", Depends(get_chunk_repository)]
-ConversationRepo = Annotated["ConversationRepository", Depends(get_conversation_repository)]
+ConversationRepo = Annotated[
+    "ConversationRepository", Depends(get_conversation_repository)
+]
 JobRepo = Annotated["JobRepository", Depends(get_job_repository)]
 UoW = Annotated["UnitOfWork", Depends(get_unit_of_work)]

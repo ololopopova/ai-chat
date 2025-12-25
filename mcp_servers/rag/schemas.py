@@ -74,6 +74,4 @@ class RAGSearchResult(BaseModel):
     chunks: list[RAGChunk] = Field(..., description="Найденные чанки")
     total_found: int = Field(..., description="Общее количество найденных")
     domain: str = Field(..., description="Домен поиска")
-    formatted_context: str = Field(
-        ..., description="Форматированный контекст для LLM"
-    )
+    formatted_context: str = Field(..., description="Форматированный контекст для LLM")

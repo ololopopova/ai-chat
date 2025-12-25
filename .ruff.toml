@@ -1,0 +1,63 @@
+# Ruff configuration for AI Chat project
+# https://docs.astral.sh/ruff/configuration/
+
+# Exclude patterns
+extend-exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+# Line length
+line-length = 100
+
+# Python version
+target-version = "py313"
+
+[lint]
+# Enable rules
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "RUF", # Ruff-specific rules
+]
+
+# Ignore specific rules
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+]
+
+# Per-file ignores
+[lint.per-file-ignores]
+# Scripts and alembic need to manipulate sys.path before imports
+"scripts/*.py" = ["E402"]
+"alembic/env.py" = ["E402"]
+"ui/app.py" = ["E402"]
+"ui/**/*.py" = ["E402"]
+
+[lint.isort]
+# Import sorting
+known-first-party = ["src", "mcp_servers", "ui"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[format]
+# Formatting options
+quote-style = "double"
+indent-style = "space"
+

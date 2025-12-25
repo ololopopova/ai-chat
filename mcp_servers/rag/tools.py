@@ -25,10 +25,10 @@ _reranker_instance: Reranker | None = None
 def get_reranker() -> Reranker:
     """
     Получить синглтон Reranker.
-    
+
     Ленивая инициализация: модель загружается только при первом вызове.
     В production модель предзагружается при старте API (см. src/api/main.py).
-    
+
     Returns:
         Reranker instance (синглтон, переиспользуется).
     """
@@ -104,7 +104,9 @@ async def hybrid_search(input_data: HybridSearchInput) -> RAGSearchResult:
             extra={
                 "domain": input_data.domain,
                 "results_after_filter": len(filtered_chunks),
-                "top_scores": [c.score for c in filtered_chunks[:5]] if filtered_chunks else [],
+                "top_scores": [c.score for c in filtered_chunks[:5]]
+                if filtered_chunks
+                else [],
             },
         )
 

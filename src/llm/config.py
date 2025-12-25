@@ -97,7 +97,9 @@ class LLMConfig:
             "azure": "AZURE_OPENAI_API_KEY",
         }
 
-        env_var = provider_env_vars.get(self.provider, f"{self.provider.upper()}_API_KEY")
+        env_var = provider_env_vars.get(
+            self.provider, f"{self.provider.upper()}_API_KEY"
+        )
         return not os.getenv(env_var)
 
     def get_model_params(self) -> dict[str, Any]:

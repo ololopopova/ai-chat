@@ -14,4 +14,3 @@ from .compatibility_subagent import COMPATIBILITY_SUBAGENT_SYSTEM_PROMPT
 from .main_agent import MAIN_AGENT_SYSTEM_PROMPT
 from .marketing_subagent import MARKETING_SUBAGENT_SYSTEM_PROMPT
 from .products_subagent import PRODUCTS_SUBAGENT_SYSTEM_PROMPT
-
