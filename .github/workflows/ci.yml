@@ -71,13 +71,7 @@ jobs:
           pip install -r requirements-dev.txt
       
       - name: Run unit tests
-        run: pytest tests/unit/ -v --cov=src --cov=ui --cov=mcp_servers --cov-report=xml
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
+        run: pytest tests/unit/ -v
 
   test-integration:
     name: Integration Tests
@@ -146,4 +140,5 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://ai_chat_user:ai_chat_password@localhost:5432/ai_chat_db
           REDIS_URL: redis://localhost:6379/0
           OPENAI_API_KEY: test-key-for-ci
+          USE_MOCK_LLM: "true"
         run: pytest tests/integration/ -v
