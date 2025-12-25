@@ -7,7 +7,6 @@ from langchain_core.messages import HumanMessage
 
 from src.graph.builder import build_chat_graph
 
-
 # =============================================================================
 # SETUP: Mock LLM для integration тестов
 # =============================================================================
@@ -19,6 +18,7 @@ def use_mock_llm(monkeypatch):
     # Удаляем API ключ чтобы форсировать использование MockChatModel
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("USE_MOCK_LLM", "true")
+
 
 # =============================================================================
 # FIXTURES
