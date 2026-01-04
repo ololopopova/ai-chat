@@ -15,7 +15,12 @@ logger = get_logger(__name__)
 RequestResponseEndpoint = Callable[[Request], Awaitable[Response]]
 
 # Re-export для обратной совместимости
-__all__ = ["RequestIdMiddleware", "RequestLoggingMiddleware", "TimingMiddleware", "get_request_id"]
+__all__ = [
+    "RequestIdMiddleware",
+    "RequestLoggingMiddleware",
+    "TimingMiddleware",
+    "get_request_id",
+]
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

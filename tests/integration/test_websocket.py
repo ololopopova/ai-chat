@@ -60,7 +60,7 @@ def sync_client(app: FastAPI) -> TestClient:
 
 
 @pytest.fixture(autouse=True)
-def cleanup() -> Generator[None, None, None]:
+def cleanup() -> Generator[None]:
     """Очистка после тестов."""
     yield
     clear_domains_cache()

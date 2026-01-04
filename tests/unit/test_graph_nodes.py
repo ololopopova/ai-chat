@@ -98,7 +98,7 @@ class TestToolsStubs:
     @pytest.mark.asyncio
     async def test_products_agent_stub(self) -> None:
         """Тест заглушки products_agent."""
-        from src.graph.tools import products_agent
+        from src.graph.subagents import products_agent
 
         result = await products_agent.ainvoke({"query": "Что для сна?"})
 
@@ -109,7 +109,7 @@ class TestToolsStubs:
     @pytest.mark.asyncio
     async def test_compatibility_agent_stub(self) -> None:
         """Тест заглушки compatibility_agent."""
-        from src.graph.tools import compatibility_agent
+        from src.graph.subagents import compatibility_agent
 
         result = await compatibility_agent.ainvoke({"query": "Сочетаемость мелатонина"})
 
@@ -119,7 +119,7 @@ class TestToolsStubs:
     @pytest.mark.asyncio
     async def test_marketing_agent_stub(self) -> None:
         """Тест заглушки marketing_agent."""
-        from src.graph.tools import marketing_agent
+        from src.graph.subagents import marketing_agent
 
         result = await marketing_agent.ainvoke({"query": "Создай баннер"})
 

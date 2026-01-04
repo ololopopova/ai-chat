@@ -134,7 +134,7 @@ class UnitOfWork:
 
 
 @asynccontextmanager
-async def get_unit_of_work() -> AsyncGenerator[UnitOfWork, None]:
+async def get_unit_of_work() -> AsyncGenerator[UnitOfWork]:
     """
     Dependency для получения UnitOfWork.
 

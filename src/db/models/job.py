@@ -135,7 +135,11 @@ class Job(Base):
     @property
     def is_finished(self) -> bool:
         """Проверить, завершена ли задача."""
-        return self.status in (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
+        return self.status in (
+            JobStatus.COMPLETED,
+            JobStatus.FAILED,
+            JobStatus.CANCELLED,
+        )
 
     @property
     def is_running(self) -> bool:
