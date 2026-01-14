@@ -1,6 +1,9 @@
 """RAG MCP Server - сервер поиска по базе знаний.
 
 Предоставляет MCP tools для гибридного RAG поиска через протокол MCP.
+
+ВАЖНО: MCP использует stdout для JSON-RPC протокола.
+Логирование должно идти в stderr, иначе ломает протокол.
 """
 
 from __future__ import annotations
@@ -12,11 +15,12 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool
 
+from mcp_servers.rag.logging import get_mcp_logger
 from mcp_servers.rag.schemas import HybridSearchInput
 from mcp_servers.rag.tools import hybrid_search
-from src.core.logging import get_logger
 
-logger = get_logger(__name__)
+# Логирование в stderr
+logger = get_mcp_logger(__name__)
 
 
 # Создаём MCP сервер
@@ -84,8 +88,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[Any]:
 
 async def main() -> None:
     """Запуск MCP сервера."""
-    logger.info("Starting RAG MCP Server")
-
+    # НЕ логируем в stdout до старта stdio_server!
+    # MCP протокол использует stdout для JSON-RPC
     async with stdio_server() as (read_stream, write_stream):
         await app.run(
             read_stream,

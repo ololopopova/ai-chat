@@ -10,12 +10,12 @@
 
 from __future__ import annotations
 
+from mcp_servers.rag.logging import get_mcp_logger
 from mcp_servers.rag.reranker import Reranker
 from mcp_servers.rag.schemas import HybridSearchInput, RAGSearchResult
 from mcp_servers.rag.search import hybrid_search as do_hybrid_search
-from src.core.logging import get_logger
 
-logger = get_logger(__name__)
+logger = get_mcp_logger(__name__)
 
 # Синглтон: Reranker инициализируется 1 раз и переиспользуется
 _reranker_instance: Reranker | None = None
