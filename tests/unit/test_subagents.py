@@ -283,4 +283,3 @@ def test_compatibility_config_values() -> None:
     assert COMPATIBILITY_CONFIG.name == "compatibility"
     assert COMPATIBILITY_CONFIG.domain == "compatibility"
     assert COMPATIBILITY_CONFIG.rag_min_score == 0.3  # Понижен для лучшего recall
-

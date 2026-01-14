@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, NavigableString, Tag  # type: ignore[attr-defined]
+from bs4 import BeautifulSoup, NavigableString, Tag
 
 from src.core.logging import get_logger
 
@@ -172,10 +172,10 @@ class HTMLParser:
             "ol",
             "li",
         ]:
-            return element.get_text(separator="\n", strip=True)
+            return str(element.get_text(separator="\n", strip=True))
         else:
             # Для остальных элементов — просто текст
-            return element.get_text(strip=True)
+            return str(element.get_text(strip=True))
 
     def _parse_table(self, table: Tag) -> str:
         """

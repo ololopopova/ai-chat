@@ -206,19 +206,21 @@ def _create_rag_tool(config: SubagentConfig) -> Any:
                 return "❌ Инструмент поиска недоступен."
 
             # Вызываем MCP tool
-            result = await mcp_tool.ainvoke({
-                "vector_queries": vector_queries,
-                "fts_keywords": fts_keywords,
-                "domain": config.domain,
-                "top_k_per_query": config.rag_top_k_per_query,
-                "final_top_k": config.rag_final_top_k,
-                "min_score": config.rag_min_score,
-                "use_reranker": True,
-            })
+            result = await mcp_tool.ainvoke(
+                {
+                    "vector_queries": vector_queries,
+                    "fts_keywords": fts_keywords,
+                    "domain": config.domain,
+                    "top_k_per_query": config.rag_top_k_per_query,
+                    "final_top_k": config.rag_final_top_k,
+                    "min_score": config.rag_min_score,
+                    "use_reranker": True,
+                }
+            )
 
             # MCP tool может возвращать:
             # - str (текст напрямую)
-            # - list[dict] с {"type": "text", "text": "..."} 
+            # - list[dict] с {"type": "text", "text": "..."}
             if isinstance(result, list):
                 # Извлекаем текст из MCP формата
                 texts = []
@@ -272,4 +274,3 @@ def _create_rag_tool(config: SubagentConfig) -> Any:
     rag_hybrid_search.description = f"MCP hybrid search с reranking для домена '{config.domain}'"
 
     return rag_hybrid_search
-

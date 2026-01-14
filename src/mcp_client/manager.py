@@ -180,9 +180,7 @@ class MCPClientManager:
                 }
 
             else:
-                raise MCPClientError(
-                    f"Unknown transport '{transport}' for server '{server_name}'"
-                )
+                raise MCPClientError(f"Unknown transport '{transport}' for server '{server_name}'")
 
         return config
 
@@ -248,7 +246,7 @@ class MCPClientManager:
                 exc_info=True,
             )
 
-    async def __aenter__(self) -> "MCPClientManager":
+    async def __aenter__(self) -> MCPClientManager:
         """Async context manager entry."""
         await self.initialize()
         return self
@@ -278,7 +276,8 @@ def get_default_mcp_config() -> MCPServerConfig:
 
     try:
         config = load_domains_config()
-        return config.get("mcp_servers", {})
+        mcp_servers: MCPServerConfig = config.get("mcp_servers", {})
+        return mcp_servers
     except Exception:
         logger.warning("Failed to load MCP config from domains.yaml, using defaults")
         return {}

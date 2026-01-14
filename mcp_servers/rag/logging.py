@@ -15,21 +15,21 @@ _configured: set[str] = set()
 def get_mcp_logger(name: str) -> logging.Logger:
     """
     Получить logger для MCP модуля.
-    
+
     Логи идут в stderr, чтобы не конфликтовать с JSON-RPC на stdout.
-    
+
     Args:
         name: Имя модуля (обычно __name__).
-        
+
     Returns:
         Настроенный logger.
     """
     logger = logging.getLogger(name)
-    
+
     # Настраиваем только один раз для каждого имени
     if name not in _configured:
         logger.setLevel(logging.INFO)
-        
+
         # Handler в stderr (НЕ stdout!)
         handler = logging.StreamHandler(sys.stderr)
         handler.setLevel(logging.INFO)
@@ -39,10 +39,10 @@ def get_mcp_logger(name: str) -> logging.Logger:
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-        
+
         # Предотвращаем propagation к root logger
         logger.propagate = False
-        
+
         _configured.add(name)
-    
+
     return logger

@@ -14,7 +14,6 @@ from src.mcp_client.manager import (
     set_mcp_client,
 )
 
-
 # =============================================================================
 # TESTS: MCPClientManager initialization
 # =============================================================================
@@ -154,9 +153,7 @@ async def test_mcp_client_manager_initialize_success() -> None:
 
     mock_tools = [MagicMock(name="hybrid_search")]
 
-    with patch(
-        "src.mcp_client.manager.MultiServerMCPClient"
-    ) as mock_client_class:
+    with patch("src.mcp_client.manager.MultiServerMCPClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.get_tools = AsyncMock(return_value=mock_tools)
         mock_client_class.return_value = mock_client
@@ -174,9 +171,7 @@ async def test_mcp_client_manager_initialize_failure() -> None:
     config = {"rag": {"command": "python", "args": [], "transport": "stdio"}}
     manager = MCPClientManager(config)
 
-    with patch(
-        "src.mcp_client.manager.MultiServerMCPClient"
-    ) as mock_client_class:
+    with patch("src.mcp_client.manager.MultiServerMCPClient") as mock_client_class:
         mock_client_class.side_effect = Exception("Connection failed")
 
         with pytest.raises(MCPServerUnavailableError, match="Connection failed"):
@@ -195,9 +190,7 @@ async def test_mcp_client_manager_get_tools_success() -> None:
     mock_tool.name = "hybrid_search"
     mock_tools = [mock_tool]
 
-    with patch(
-        "src.mcp_client.manager.MultiServerMCPClient"
-    ) as mock_client_class:
+    with patch("src.mcp_client.manager.MultiServerMCPClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.get_tools = AsyncMock(return_value=mock_tools)
         mock_client_class.return_value = mock_client
@@ -219,9 +212,7 @@ async def test_mcp_client_manager_get_tool_by_name_success() -> None:
     mock_tool.name = "hybrid_search"
     mock_tools = [mock_tool]
 
-    with patch(
-        "src.mcp_client.manager.MultiServerMCPClient"
-    ) as mock_client_class:
+    with patch("src.mcp_client.manager.MultiServerMCPClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.get_tools = AsyncMock(return_value=mock_tools)
         mock_client_class.return_value = mock_client
@@ -241,9 +232,7 @@ async def test_mcp_client_manager_get_tool_by_name_not_found() -> None:
 
     mock_tools: list[MagicMock] = []
 
-    with patch(
-        "src.mcp_client.manager.MultiServerMCPClient"
-    ) as mock_client_class:
+    with patch("src.mcp_client.manager.MultiServerMCPClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.get_tools = AsyncMock(return_value=mock_tools)
         mock_client_class.return_value = mock_client
@@ -259,9 +248,7 @@ async def test_mcp_client_manager_context_manager() -> None:
     """Тест: использование как async context manager."""
     config = {"rag": {"command": "python", "args": [], "transport": "stdio"}}
 
-    with patch(
-        "src.mcp_client.manager.MultiServerMCPClient"
-    ) as mock_client_class:
+    with patch("src.mcp_client.manager.MultiServerMCPClient") as mock_client_class:
         mock_client = MagicMock()
         mock_client.get_tools = AsyncMock(return_value=[])
         mock_client_class.return_value = mock_client
