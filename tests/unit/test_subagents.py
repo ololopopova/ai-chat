@@ -100,8 +100,9 @@ def test_subagent_config_defaults() -> None:
     assert config.domain == "products"
     assert config.system_prompt == "Test prompt"
     assert config.history_window == 10
-    assert config.rag_top_k == 5
-    assert config.rag_min_score == 0.5
+    assert config.rag_top_k_per_query == 5
+    assert config.rag_final_top_k == 15
+    assert config.rag_min_score == 0.3
 
 
 def test_subagent_config_custom() -> None:
@@ -111,12 +112,14 @@ def test_subagent_config_custom() -> None:
         domain="compatibility",
         system_prompt="Custom prompt",
         history_window=20,
-        rag_top_k=10,
+        rag_top_k_per_query=10,
+        rag_final_top_k=30,
         rag_min_score=0.8,
     )
 
     assert config.history_window == 20
-    assert config.rag_top_k == 10
+    assert config.rag_top_k_per_query == 10
+    assert config.rag_final_top_k == 30
     assert config.rag_min_score == 0.8
 
 
@@ -150,7 +153,8 @@ def test_create_rag_subagent_custom_config() -> None:
         domain="test",
         system_prompt="Test system prompt",
         history_window=5,
-        rag_top_k=3,
+        rag_top_k_per_query=3,
+        rag_final_top_k=10,
         rag_min_score=0.7,
     )
 
@@ -271,11 +275,11 @@ def test_products_config_values() -> None:
     """Тест: Products config имеет правильные значения."""
     assert PRODUCTS_CONFIG.name == "products"
     assert PRODUCTS_CONFIG.domain == "products"
-    assert PRODUCTS_CONFIG.rag_min_score == 0.5
+    assert PRODUCTS_CONFIG.rag_min_score == 0.3
 
 
 def test_compatibility_config_values() -> None:
     """Тест: Compatibility config имеет правильные значения."""
     assert COMPATIBILITY_CONFIG.name == "compatibility"
     assert COMPATIBILITY_CONFIG.domain == "compatibility"
-    assert COMPATIBILITY_CONFIG.rag_min_score == 0.6  # Выше порог для безопасности
+    assert COMPATIBILITY_CONFIG.rag_min_score == 0.3  # Понижен для лучшего recall

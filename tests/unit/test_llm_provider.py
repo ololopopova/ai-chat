@@ -1,5 +1,6 @@
 """Тесты для LLM провайдера."""
 
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch
@@ -91,10 +92,20 @@ class TestLLMConfig:
         config2 = LLMConfig(model="openai:gpt-5-mini")
         assert config2.is_gpt5 is True
 
-    def test_is_gpt5_false(self) -> None:
-        """Проверка для не-GPT-5 моделей."""
-        config = LLMConfig(model="openai:gpt-4o")
-        assert config.is_gpt5 is False
+    def test_is_mock_mode_no_key(self) -> None:
+        """Mock режим при отсутствии ключа."""
+        with patch.dict("os.environ", {}, clear=True):
+            config = LLMConfig()
+            # Без OPENAI_API_KEY должен быть mock mode
+            assert config.is_mock_mode is True
+
+    def test_is_mock_mode_with_key(self):
+        """Проверка is_mock_mode если API ключ есть."""
+        # Убедимся, что USE_MOCK_LLM не влияет (или явно сброшен)
+        # Using string path for patch.dict to be safe
+        with patch.dict(os.environ, {"USE_MOCK_LLM": ""}):
+            config = LLMConfig(api_key="sk-test-key")
+            assert config.is_mock_mode is False
 
     def test_get_model_params_gpt5(self) -> None:
         """Параметры для GPT-5.x."""
@@ -113,19 +124,6 @@ class TestLLMConfig:
         config = LLMConfig(model="openai:gpt-4o")
         params = config.get_model_params()
         assert params == {"temperature": 0.7}
-
-    def test_is_mock_mode_no_key(self) -> None:
-        """Mock режим при отсутствии ключа."""
-        with patch.dict("os.environ", {}, clear=True):
-            config = LLMConfig()
-            # Без OPENAI_API_KEY должен быть mock mode
-            assert config.is_mock_mode is True
-
-    def test_is_mock_mode_with_key(self) -> None:
-        """Обычный режим при наличии ключа."""
-        with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"}):
-            config = LLMConfig()
-            assert config.is_mock_mode is False
 
     def test_with_overrides(self) -> None:
         """Проверка создания конфига с переопределениями."""

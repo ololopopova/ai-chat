@@ -172,10 +172,10 @@ class HTMLParser:
             "ol",
             "li",
         ]:
-            return element.get_text(separator="\n", strip=True)
+            return str(element.get_text(separator="\n", strip=True))
         else:
             # Для остальных элементов — просто текст
-            return element.get_text(strip=True)
+            return str(element.get_text(strip=True))
 
     def _parse_table(self, table: Tag) -> str:
         """

@@ -147,6 +147,9 @@ def _create_rag_tool(config: SubagentConfig) -> Any:
     """
     Создать RAG tool для субагента через MCP.
 
+    Использует MCP client для вызова hybrid_search tool через протокол MCP.
+    Поддерживает stdio и HTTP транспорты.
+
     Args:
         config: Конфигурация субагента.
 
@@ -178,35 +181,68 @@ def _create_rag_tool(config: SubagentConfig) -> Any:
             },
         )
 
-        # Вызываем MCP tool напрямую
-        from mcp_servers.rag.schemas import HybridSearchInput
-        from mcp_servers.rag.tools import hybrid_search as mcp_hybrid_search
-
         try:
-            # Формируем запрос к MCP tool
-            search_input = HybridSearchInput(
-                vector_queries=vector_queries,
-                fts_keywords=fts_keywords,
-                domain=config.domain,
-                top_k_per_query=config.rag_top_k_per_query,
-                final_top_k=config.rag_final_top_k,
-                min_score=config.rag_min_score,
-                use_reranker=True,
-            )
+            # Получаем MCP client
+            from src.mcp_client import get_mcp_client
+
+            mcp_client = get_mcp_client()
+
+            if mcp_client is None or not mcp_client.is_initialized:
+                # MCP client не инициализирован — возвращаем ошибку
+                logger.error(
+                    "MCP client not available",
+                    extra={"domain": config.domain},
+                )
+                return "❌ MCP сервер недоступен. Попробуйте позже."
+
+            # Получаем tool из MCP client
+            mcp_tool = await mcp_client.get_tool_by_name("hybrid_search")
+
+            if mcp_tool is None:
+                logger.error(
+                    "hybrid_search tool not found in MCP",
+                    extra={"domain": config.domain},
+                )
+                return "❌ Инструмент поиска недоступен."
 
             # Вызываем MCP tool
-            result = await mcp_hybrid_search(search_input)
+            result = await mcp_tool.ainvoke(
+                {
+                    "vector_queries": vector_queries,
+                    "fts_keywords": fts_keywords,
+                    "domain": config.domain,
+                    "top_k_per_query": config.rag_top_k_per_query,
+                    "final_top_k": config.rag_final_top_k,
+                    "min_score": config.rag_min_score,
+                    "use_reranker": True,
+                }
+            )
+
+            # MCP tool может возвращать:
+            # - str (текст напрямую)
+            # - list[dict] с {"type": "text", "text": "..."}
+            if isinstance(result, list):
+                # Извлекаем текст из MCP формата
+                texts = []
+                for item in result:
+                    if isinstance(item, dict) and "text" in item:
+                        texts.append(item["text"])
+                    elif isinstance(item, str):
+                        texts.append(item)
+                result_text = "\n".join(texts)
+            else:
+                result_text = str(result) if result else ""
 
             logger.info(
                 "MCP hybrid_search completed",
                 extra={
                     "domain": config.domain,
-                    "results_found": result.total_found,
+                    "result_length": len(result_text),
                 },
             )
 
-            # Если ничего не найдено
-            if not result.formatted_context or result.total_found == 0:
+            # Проверяем результат
+            if not result_text or result_text.strip() == "":
                 logger.warning(
                     "No results found via MCP",
                     extra={
@@ -219,7 +255,7 @@ def _create_rag_tool(config: SubagentConfig) -> Any:
                     "❌ Информация не найдена в базе знаний. Попробуйте переформулировать запрос."
                 )
 
-            return result.formatted_context
+            return result_text
 
         except Exception as e:
             logger.error(

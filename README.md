@@ -147,6 +147,7 @@ ai-chat/
 │
 ├── mcp_servers/                   # MCP Servers (расширяемые инструменты)
 │   └── rag/                       # RAG MCP Server
+│       ├── __main__.py            # Entry point для stdio transport
 │       ├── server.py              # FastMCP server
 │       ├── tools.py               # hybrid_search tool
 │       ├── search.py              # Multi-query hybrid search logic
@@ -177,6 +178,10 @@ ai-chat/
 │   │   ├── chunk_repository.py    # Hybrid search (FTS + Vector)
 │   │   ├── conversation_repository.py
 │   │   └── job_repository.py
+│   │
+│   ├── mcp_client/                # MCP Client (подключение к MCP серверам)
+│   │   ├── __init__.py            # Экспорт MCPClientManager
+│   │   └── manager.py             # MultiServerMCPClient wrapper (stdio/HTTP)
 │   │
 │   ├── graph/                     # LangGraph Orchestration
 │   │   ├── state.py               # ChatState (messages + stage)
@@ -577,7 +582,7 @@ rag:
 
 ## 🏗 Архитектура
 
-### ReAct Multi-Agent Flow с RAG
+### ReAct Multi-Agent Flow с RAG + MCP
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -598,6 +603,13 @@ rag:
         └─────┬────┘   └─────┬────┘   └──────────┘
               │              │
               ↓              ↓
+        ┌──────────────────────────┐
+        │     MCPClientManager     │
+        │  (langchain-mcp-adapters)│
+        │  - stdio transport       │
+        │  - HTTP transport        │
+        └─────────┬────────────────┘
+                  ↓
         ┌──────────────────────────┐
         │   RAG MCP Server         │
         │  - hybrid_search tool    │

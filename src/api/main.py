@@ -100,6 +100,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     except Exception:
         logger.exception("Failed to initialize ChatService")
 
+    # Инициализация MCP Client для подключения к MCP серверам
+    mcp_client = None
+    try:
+        from src.api.deps import load_domains_config
+        from src.mcp_client import MCPClientManager, set_mcp_client
+
+        domains_config = load_domains_config()
+        mcp_servers_config = domains_config.get("mcp_servers", {})
+
+        if mcp_servers_config:
+            logger.info(
+                "Initializing MCP client",
+                extra={"servers": list(mcp_servers_config.keys())},
+            )
+            mcp_client = MCPClientManager(mcp_servers_config)
+            await mcp_client.initialize()
+            set_mcp_client(mcp_client)
+            app.state.mcp_client = mcp_client
+            logger.info("MCP client initialized successfully")
+        else:
+            logger.info("No MCP servers configured, skipping MCP client init")
+            app.state.mcp_client = None
+    except Exception:
+        logger.exception("Failed to initialize MCP client")
+        app.state.mcp_client = None
+
     # Предзагрузка Reranker модели (если включена в конфиге)
     try:
         from src.api.deps import load_domains_config
@@ -120,6 +146,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         logger.exception("Failed to preload Reranker model")
 
     yield
+
+    # Cleanup MCP client
+    if mcp_client is not None:
+        from src.mcp_client import set_mcp_client
+
+        await mcp_client.close()
+        set_mcp_client(None)
+        logger.info("MCP client closed")
 
     # Cleanup checkpointer
     if checkpointer_manager is not None:

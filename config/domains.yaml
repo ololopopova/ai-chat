@@ -107,6 +107,22 @@ subagents:
     #   - content_strategy
 
 # =============================================================================
+# MCP SERVERS (Model Context Protocol)
+# =============================================================================
+
+mcp_servers:
+  # RAG Server — гибридный поиск по базе знаний
+  rag:
+    # Transport: "stdio" (subprocess) или "http" (remote)
+    transport: "stdio"
+    # Для stdio transport:
+    command: "python"
+    args: ["-m", "mcp_servers.rag"]
+    # Для http transport (альтернатива):
+    # transport: "http"
+    # url: "http://localhost:8100/mcp"
+
+# =============================================================================
 # RAG НАСТРОЙКИ (для будущих фаз)
 # =============================================================================
 

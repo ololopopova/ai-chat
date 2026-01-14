@@ -44,6 +44,7 @@ lxml>=5.0.0
 
 # MCP Protocol
 mcp>=1.0.0
+langchain-mcp-adapters>=0.1.0
 
 # ML for RAG
 sentence-transformers>=3.0.0  # Embeddings and cross-encoder reranking
