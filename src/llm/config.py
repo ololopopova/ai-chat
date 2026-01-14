@@ -86,6 +86,9 @@ class LLMConfig:
     @property
     def is_mock_mode(self) -> bool:
         """Проверить, нужно ли использовать mock режим (нет API ключа)."""
+        if os.getenv("USE_MOCK_LLM", "").lower() == "true":
+            return True
+
         if self.api_key:
             return False
 
